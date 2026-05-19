@@ -1,130 +1,175 @@
+import { Neubrutalism } from "@/constants/theme";
 import { Image } from "expo-image";
-import { Platform, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
-import { ExternalLink } from "@/components/external-link";
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Collapsible } from "@/components/ui/collapsible";
-import { Fonts } from "@/constants/theme";
 
-export default function HomeScreen() {
+const TRENDING_ANIME = [
+  {
+    id: 1,
+    title: "Jujutsu Kaisen",
+    img: "https://myanimelist.net/images/anime/1171/109222.jpg",
+  },
+  {
+    id: 2,
+    title: "Attack on Titan",
+    img: "https://myanimelist.net/images/anime/10/47347.jpg",
+  },
+  {
+    id: 3,
+    title: "Demon Slayer",
+    img: "https://myanimelist.net/images/anime/1286/99889.jpg",
+  },
+  {
+    id: 4,
+    title: "One Piece",
+    img: "https://myanimelist.net/images/anime/1244/138851.jpg",
+  },
+];
+
+const GENRES = ["Action", "Adventure", "Slice of Life", "Fantasy"];
+const NEUBRUTALISM_COLORS = ["#FFD166", "#EF476F", "#06D6A0", "#118AB2"];
+
+export default function ExploreScreen() {
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
+      headerBackgroundColor={{ light: "#111827", dark: "#0F172A" }}
       headerImage={
         <Image
-          source={require("@/assets/images/logo-uym.png")}
-          style={styles.Logo}
+          source={{
+            uri: "https://4kwallpapers.com/images/walls/thumbs_3t/20404.jpg",
+          }}
+          style={styles.headerImage}
         />
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}
-        >
-          Explore
-        </ThemedText>
+        <ThemedText type="title">Explore Anime</ThemedText>
       </ThemedView>
-      <ThemedText>
-        This app includes example code to help you get started.
-      </ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{" "}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>{" "}
-          and{" "}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
+
+      <ThemedView style={styles.section}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Trending Musim Ini
         </ThemedText>
-        <ThemedText>
-          The layout file in{" "}
-          <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{" "}
-          sets up the tab navigator.
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.trendingScroll}
+        >
+          {TRENDING_ANIME.map((anime) => (
+            <View key={anime.id} style={styles.trendingCardContainer}>
+              <View style={styles.trendingCardShadow} />
+              <View style={styles.trendingCard}>
+                <Image
+                  source={{ uri: anime.img }}
+                  style={styles.trendingImage}
+                  contentFit="cover"
+                />
+                <ThemedText style={styles.trendingTitle} numberOfLines={1}>
+                  {anime.title}
+                </ThemedText>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </ThemedView>
+
+      <ThemedView style={styles.section}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Kategori Genre
         </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the
-          web version, press <ThemedText type="defaultSemiBold">w</ThemedText>{" "}
-          in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the{" "}
-          <ThemedText type="defaultSemiBold">@2x</ThemedText> and{" "}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to
-          provide files for different screen densities
-        </ThemedText>
-        <Image
-          source={require("@/assets/images/react-logo.png")}
-          style={{ width: 100, height: 100, alignSelf: "center" }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{" "}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook
-          lets you inspect what the user&apos;s current color scheme is, and so
-          you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{" "}
-          <ThemedText type="defaultSemiBold">
-            components/HelloWave.tsx
-          </ThemedText>{" "}
-          component uses the powerful{" "}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{" "}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The{" "}
-              <ThemedText type="defaultSemiBold">
-                components/ParallaxScrollView.tsx
-              </ThemedText>{" "}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
+        <View style={styles.genreGrid}>
+          {GENRES.map((genre, idx) => (
+            <View
+              key={idx}
+              style={[
+                styles.genreCard,
+                {
+                  backgroundColor:
+                    NEUBRUTALISM_COLORS[idx % NEUBRUTALISM_COLORS.length],
+                },
+              ]}
+            >
+              <ThemedText style={styles.genreText}>{genre}</ThemedText>
+            </View>
+          ))}
+        </View>
+      </ThemedView>
     </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: "#808080",
-    bottom: -90,
-    left: -35,
-    position: "absolute",
-  },
-  titleContainer: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  Logo: {
-    height: 178,
-    width: 290,
+    height: "100%",
+    width: "100%",
     bottom: 0,
     left: 0,
     position: "absolute",
+  },
+  titleContainer: {
+    marginBottom: 20,
+  },
+  section: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    color: "#000000",
+    fontWeight: "900",
+  },
+  trendingScroll: {
+    gap: 16,
+    paddingBottom: 8,
+    paddingRight: 8,
+  },
+  trendingCardContainer: {
+    width: 140,
+  },
+  trendingCardShadow: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#000000",
+  },
+  trendingCard: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    ...Neubrutalism,
+  },
+  trendingImage: {
+    width: "100%",
+    height: 200,
+    borderBottomWidth: 3,
+    borderColor: "#000000",
+  },
+  trendingTitle: {
+    padding: 12,
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#000000",
+    textAlign: "center",
+  },
+  genreGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  genreCard: {
+    flex: 1,
+    minWidth: "45%",
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    ...Neubrutalism,
+  },
+  genreText: {
+    color: "#000000",
+    fontWeight: "900",
+    fontSize: 16,
   },
 });

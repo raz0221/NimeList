@@ -6,25 +6,31 @@
 import { Platform } from 'react-native';
 
 const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorDark = '#F97316';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#000000',
+    background: '#FFF3E0', // Pale bright background
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: '#000000',
+    tabIconDefault: '#000000',
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#FFFFFF',
+    background: '#1A1A1A', // Dark but flat background
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: '#FFFFFF',
+    tabIconDefault: '#888888',
     tabIconSelected: tintColorDark,
   },
+};
+
+export const Neubrutalism = {
+  borderWidth: 3,
+  borderColor: '#000000',
+  borderRadius: 0,
 };
 
 export const Fonts = Platform.select({

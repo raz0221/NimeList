@@ -1,3 +1,4 @@
+import { Neubrutalism } from "@/constants/theme";
 import { Image } from "expo-image";
 import React, { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity } from "react-native";
@@ -6,7 +7,7 @@ import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 
-export default function HomeScreen() {
+export default function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -15,29 +16,34 @@ export default function HomeScreen() {
       Alert.alert("Error", "Username dan Password tidak boleh kosong!");
       return;
     }
-    // Aksi ketika tombol masuk ditekan
     Alert.alert("Login Info", `Username: ${username}\nPassword: ${password}`);
   };
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
+      headerBackgroundColor={{ light: "#111827", dark: "#0F172A" }}
       headerImage={
         <Image
-          source={require("@/assets/images/pp.png")}
-          style={styles.reactLogo}
+          source={{
+            uri: "https://4kwallpapers.com/images/walls/thumbs_3t/16712.jpg",
+          }}
+          style={styles.headerImage}
         />
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">LOGIN</ThemedText>
+        <ThemedText type="title">Masuk ke AniTrack</ThemedText>
       </ThemedView>
+
+      <ThemedText style={styles.slogan}>
+        Lacak anime favoritmu sekarang!
+      </ThemedText>
 
       <ThemedView style={styles.formContainer}>
         <TextInput
           style={styles.input}
           placeholder="Username"
-          placeholderTextColor="#888"
+          placeholderTextColor="#9CA3AF"
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
@@ -46,7 +52,7 @@ export default function HomeScreen() {
         <TextInput
           style={styles.input}
           placeholder="Password"
-          placeholderTextColor="#888"
+          placeholderTextColor="#9CA3AF"
           value={password}
           onChangeText={setPassword}
           secureTextEntry={true}
@@ -65,38 +71,41 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 4,
+  },
+  slogan: {
+    color: "#6B7280",
+    fontSize: 16,
+    marginBottom: 20,
+    fontWeight: "bold",
   },
   formContainer: {
     gap: 16,
-    paddingTop: 8,
   },
   input: {
     height: 50,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
+    ...Neubrutalism,
     paddingHorizontal: 16,
     fontSize: 16,
-    backgroundColor: "#f9f9f9",
-    color: "#333",
+    backgroundColor: "#FFFFFF",
+    color: "#000000",
   },
   button: {
     height: 50,
-    backgroundColor: "#1D3D47", // Menyesuaikan dengan warna tema dark header
-    borderRadius: 8,
+    backgroundColor: "#06D6A0", // Bright green for contrast
+    ...Neubrutalism,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 8,
   },
   buttonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: "#000000",
+    fontSize: 18,
+    fontWeight: "900",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
+  headerImage: {
+    height: "100%",
+    width: "100%",
     bottom: 0,
     left: 0,
     position: "absolute",
