@@ -1,12 +1,35 @@
 import { Neubrutalism } from "@/constants/theme";
 import { Image } from "expo-image";
-import { StyleSheet, View } from "react-native";
+import { useState } from "react";
+import {
+  Alert,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 
 export default function HomeScreen() {
+  const [judulAnime, setJudulAnime] = useState("");
+  const [episode, setEpisode] = useState("");
+  const [daftarAnime, setDaftarAnime] = useState<
+    { id: string; judul: string; episode: string }[]
+  >([]);
+
+  const handleTambahAnime = () => {
+    if (!judulAnime.trim() || !episode.trim()) {
+      Alert.alert("Error", "Judul Anime dan Total Episode tidak boleh kosong!");
+      return;
+    }
+    Alert.alert("Sukses", "Anime berhasil ditambahkan!");
+    setJudulAnime("");
+    setEpisode("");
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#111827", dark: "#0F172A" }}
@@ -38,6 +61,27 @@ export default function HomeScreen() {
           <ThemedText style={styles.cardText}>Rencana Tonton</ThemedText>
         </View>
       </ThemedView>
+
+      <View style={styles.formContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Judul Anime"
+          placeholderTextColor="#6B7280"
+          value={judulAnime}
+          onChangeText={setJudulAnime}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Total Episode"
+          placeholderTextColor="#6B7280"
+          value={episode}
+          onChangeText={setEpisode}
+          keyboardType="numeric"
+        />
+        <TouchableOpacity style={styles.button} onPress={handleTambahAnime}>
+          <ThemedText style={styles.buttonText}>Simpan Anime</ThemedText>
+        </TouchableOpacity>
+      </View>
     </ParallaxScrollView>
   );
 }
@@ -72,5 +116,48 @@ const styles = StyleSheet.create({
     color: "#000000",
     fontSize: 18,
     fontWeight: "900",
+  },
+  formContainer: {
+    marginTop: 24,
+    gap: 12,
+  },
+  input: {
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    fontSize: 16,
+    color: "#000000",
+    ...Neubrutalism,
+  },
+  button: {
+    backgroundColor: "#06D6A0",
+    padding: 16,
+    alignItems: "center",
+    marginTop: 4,
+    ...Neubrutalism,
+  },
+  buttonText: {
+    color: "#000000",
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  listContainer: {
+    marginTop: 24,
+    gap: 16,
+  },
+  animeCard: {
+    backgroundColor: "#FFD166",
+    padding: 16,
+    ...Neubrutalism,
+  },
+  animeTitle: {
+    color: "#000000",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 4,
+  },
+  animeEpisode: {
+    color: "#000000",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
