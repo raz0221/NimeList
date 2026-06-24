@@ -1,52 +1,123 @@
-import { Neubrutalism } from "@/constants/theme";
-import { StyleSheet, View, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { COLORS, STATUS_COLORS } from "@/constants/theme";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import { fetchAniList } from "@/src/services/anilist";
+import { NeoButton, NeoCard, NeoBadge } from "@/components/NeoKit";
+import { useTheme } from "@/src/context/ThemeContext";
 
-const NEWS_DATA = [
-  { id: "1", title: "Adaptasi Anime Baru untuk Manga Populer 'Dandadan' Diumumkan", date: "10 Juni 2026", category: "Pengumuman" },
-  { id: "2", title: "Jadwal Tayang Demon Slayer Season Berikutnya Mengalami Penundaan", date: "8 Juni 2026", category: "Update" },
-  { id: "3", title: "Wawancara Eksklusif dengan Sutradara Makoto Shinkai", date: "5 Juni 2026", category: "Wawancara" },
-];
+// AniList: ambil anime trending terbaru sebagai sumber "berita"
+const LATEST_TRENDING_QUERY = `
+  query GetLatestNews {
+    Page(page: 1, perPage: 15) {
+      media(sort: TRENDING_DESC, type: ANIME, status_in: [RELEASING, FINISHED]) {
+        id
+        title { romaji english }
+        updatedAt
+        status
+        genres
+      }
+    }
+  }
+`;
+
+const STATUS_LABEL: Record<string, string> = {
+  RELEASING: "Sedang Tayang",
+  FINISHED: "Selesai Tayang",
+  NOT_YET_RELEASED: "Segera Tayang",
+  CANCELLED: "Dibatalkan",
+  HIATUS: "Hiatus",
+};
+
+const CATEGORY_COLORS = [COLORS.ACCENT, STATUS_COLORS.FINISHED, STATUS_COLORS.ON_AIR, STATUS_COLORS.UPCOMING, STATUS_COLORS.MOVIE, COLORS.PRIMARY];
 
 export default function NewsScreen() {
+  const [newsFeed, setNewsFeed] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { colors, isDark } = useTheme();
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const response = await fetchAniList(LATEST_TRENDING_QUERY);
+        setNewsFeed(response.Page.media || []);
+      } catch (error) {
+        console.error("Error fetching news feed:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchNews();
+  }, []);
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{fontWeight: '900', color: '#000'}}>← Kembali</ThemedText>
-        </TouchableOpacity>
-        <ThemedText type="title">Berita Anime Terbaru</ThemedText>
+        <NeoButton
+          title="← Kembali"
+          color={isDark ? colors.primary : COLORS.PRIMARY}
+          onPress={() => router.back()}
+          style={{ marginBottom: 16 }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14, color: isDark ? '#000' : COLORS.BUTTON_TEXT_LIGHT }}
+        />
+        <ThemedText type="title">Berita &amp; Update Anime</ThemedText>
+        <ThemedText style={[styles.subtitle, { color: colors.textMuted }]}>Trending terbaru dari AniList</ThemedText>
       </View>
 
-      <View style={styles.newsList}>
-        {NEWS_DATA.map((news) => (
-          <TouchableOpacity 
-            key={news.id} 
-            style={styles.newsCard}
-            onPress={() => Alert.alert("Baca Berita", `Membuka artikel: ${news.title}`)}
-          >
-            <View style={styles.badge}>
-              <ThemedText style={styles.badgeText}>{news.category}</ThemedText>
-            </View>
-            <ThemedText style={styles.newsTitle}>{news.title}</ThemedText>
-            <ThemedText style={styles.newsDate}>{news.date}</ThemedText>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {isLoading ? (
+        <ActivityIndicator size="large" color={COLORS.ACCENT} style={{ marginTop: 40 }} />
+      ) : (
+        <View style={styles.newsList}>
+          {newsFeed.map((item, idx) => {
+            const title = item.title.romaji || item.title.english;
+            const category = STATUS_LABEL[item.status] || item.status;
+            const genre = item.genres?.[0] || "Anime";
+            const badgeColor = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+
+            // Format timestamp
+            const date = item.updatedAt
+              ? new Date(item.updatedAt * 1000).toLocaleDateString("id-ID", {
+                day: "numeric", month: "long", year: "numeric",
+              })
+              : "Baru saja";
+
+            return (
+              <TouchableOpacity
+                key={item.id}
+                onPress={() => router.push(`/explore/${item.id}`)}
+              >
+                <NeoCard contentStyle={styles.newsCard}>
+                  <View style={styles.cardTopRow}>
+                    <NeoBadge label={category} color={badgeColor} textStyle={{ color: COLORS.BUTTON_TEXT_DARK }} />
+                    <NeoBadge label={genre} color={STATUS_COLORS.DEFAULT} textStyle={{ color: COLORS.TEXT_SECONDARY }} />
+                  </View>
+                  <ThemedText style={styles.newsTitle}>{title}</ThemedText>
+                  <View style={styles.footerRow}>
+                    <ThemedText style={styles.newsDate}>🗓️ {date}</ThemedText>
+                    <ThemedText style={styles.readMore}>Lihat Detail →</ThemedText>
+                  </View>
+                </NeoCard>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F3F4F6", padding: 20 },
+  container: { flex: 1, padding: 20 },
   header: { marginBottom: 24, marginTop: 40 },
-  backButton: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#FFD166', alignSelf: 'flex-start', marginBottom: 16, ...Neubrutalism },
+  subtitle: { marginTop: 8, fontWeight: "bold" },
   newsList: { gap: 20, paddingBottom: 40 },
-  newsCard: { backgroundColor: "#FFFFFF", padding: 20, ...Neubrutalism },
-  badge: { alignSelf: 'flex-start', backgroundColor: "#EF476F", paddingHorizontal: 8, paddingVertical: 4, marginBottom: 8, ...Neubrutalism },
-  badgeText: { color: "#FFF", fontSize: 12, fontWeight: "bold" },
-  newsTitle: { fontSize: 18, fontWeight: "900", color: "#000", marginBottom: 12, lineHeight: 24 },
-  newsDate: { fontSize: 14, color: "#6B7280", fontWeight: "bold" },
+  newsCard: { padding: 20 },
+  cardTopRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  newsTitle: { fontSize: 17, fontWeight: "900", marginBottom: 12, lineHeight: 24 },
+  footerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  newsDate: { fontSize: 13, fontWeight: "bold" },
+  readMore: { fontSize: 13, color: STATUS_COLORS.FINISHED, fontWeight: "900" },
 });

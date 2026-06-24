@@ -1,77 +1,119 @@
-import { Neubrutalism } from "@/constants/theme";
-import { StyleSheet, View, ScrollView, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
-
+import { COLORS, STATUS_COLORS, Neubrutalism } from "@/constants/theme";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { fetchAniList } from "@/src/services/anilist";
+import { NeoButton, NeoAnimeCard } from "@/components/NeoKit";
 
-const DUMMY_MOVIES = [
-  { id: "m1", title: "Kimi no Na wa.", img: "https://myanimelist.net/images/anime/5/87048.jpg", studio: "CoMix Wave Films", color: "#118AB2" },
-  { id: "m2", title: "Koe no Katachi", img: "https://myanimelist.net/images/anime/1122/96435.jpg", studio: "Kyoto Animation", color: "#EF476F" },
-  { id: "m3", title: "Suzume no Tojimari", img: "https://myanimelist.net/images/anime/1085/127402.jpg", studio: "CoMix Wave Films", color: "#FFD166" },
-  { id: "m4", title: "Spirited Away", img: "https://myanimelist.net/images/anime/6/79597.jpg", studio: "Studio Ghibli", color: "#06D6A0" },
-  { id: "m5", title: "Weathering with You", img: "https://myanimelist.net/images/anime/1229/104803.jpg", studio: "CoMix Wave Films", color: "#3A86FF" },
-];
+const MOVIES_QUERY = `
+  query GetAnimeMovies {
+    Page(page: 1, perPage: 20) {
+      media(format: MOVIE, sort: TRENDING_DESC, type: ANIME) {
+        id
+        title {
+          romaji
+          english
+        }
+        coverImage {
+          large
+        }
+        startDate {
+          year
+          month
+          day
+        }
+        episodes
+        duration
+        genres
+        description
+        studios(isMain: true) {
+          nodes {
+            name
+          }
+        }
+        source
+        averageScore
+        format
+        isAdult
+        status
+      }
+    }
+  }
+`;
 
 export default function MoviesScreen() {
+  const [data, setData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const response = await fetchAniList(MOVIES_QUERY);
+        setData(response.Page.media);
+      } catch (err: any) {
+        setError(err.message || 'Terjadi kesalahan');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
   return (
     <ScrollView style={styles.container}>
       <ThemedView style={styles.header}>
-        <TouchableOpacity 
+        <NeoButton
+          title="← Kembali"
+          color={COLORS.PRIMARY}
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
             } else {
               router.push('/(tabs)/explore');
             }
-          }} 
-          style={styles.backButton}
-        >
-          <ThemedText style={{ fontWeight: "900", color: "#000" }}>← Kembali</ThemedText>
-        </TouchableOpacity>
+          }}
+          style={{ marginBottom: 16, alignSelf: 'flex-start' }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14 }}
+        />
         <ThemedText type="title">Anime Movie</ThemedText>
         <ThemedText style={styles.subtitle}>Jelajahi film anime layar lebar terbaik</ThemedText>
       </ThemedView>
 
-      <View style={styles.list}>
-        {DUMMY_MOVIES.map((movie) => (
-          <TouchableOpacity
-            key={movie.id}
-            style={styles.card}
-            onPress={() => router.push(`/explore/${movie.id}`)}
-          >
-            <View style={styles.cardShadow} />
-            <View style={[styles.cardInner, { backgroundColor: movie.color }]}>
-              <Image source={{ uri: movie.img }} style={styles.cardImage} contentFit="cover" />
-              <View style={styles.cardInfo}>
-                <ThemedText style={styles.cardTitle}>{movie.title}</ThemedText>
-                <View style={styles.studioBadge}>
-                  <ThemedText style={styles.studioText}>{movie.studio}</ThemedText>
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {isLoading ? (
+        <ActivityIndicator size="large" color={STATUS_COLORS.FINISHED} style={{ marginTop: 40 }} />
+      ) : error ? (
+        <ThemedText style={styles.errorText}>Error: {error}</ThemedText>
+      ) : (
+        <View style={styles.list}>
+          {data.map((movie, idx) => {
+            const colors = [STATUS_COLORS.FINISHED, COLORS.ACCENT, COLORS.PRIMARY, STATUS_COLORS.ON_AIR, STATUS_COLORS.MOVIE];
+            const color = colors[idx % colors.length];
+
+            return (
+              <NeoAnimeCard
+                key={movie.id}
+                anime={movie}
+                color={color}
+                onPress={() => router.push(`/explore/${movie.id}`)}
+              />
+            )
+          })}
+        </View>
+      )}
       <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F3F4F6", padding: 20 },
+  container: { flex: 1, backgroundColor: COLORS.BACKGROUND, padding: 20 },
   header: { marginBottom: 24, marginTop: 40, backgroundColor: "transparent" },
-  backButton: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: "#FFD166", alignSelf: "flex-start", marginBottom: 16, ...Neubrutalism },
-  subtitle: { color: "#6B7280", marginTop: 8, fontWeight: "bold" },
+  subtitle: { color: COLORS.TEXT_SECONDARY, marginTop: 8, fontWeight: "bold" },
+  errorText: { color: COLORS.ACCENT, fontWeight: "bold", textAlign: "center", marginTop: 20 },
   
-  list: { gap: 20 },
-  card: { height: 140 },
-  cardShadow: { position: "absolute", top: 6, left: 6, width: "100%", height: "100%", backgroundColor: "#000" },
-  cardInner: { flex: 1, flexDirection: "row", overflow: "hidden", ...Neubrutalism },
-  cardImage: { width: 100, height: "100%", borderRightWidth: 3, borderColor: "#000" },
-  cardInfo: { flex: 1, padding: 16, justifyContent: "center" },
-  cardTitle: { fontSize: 20, fontWeight: "900", color: "#000", marginBottom: 12 },
-  studioBadge: { alignSelf: "flex-start", backgroundColor: "#FFFFFF", paddingHorizontal: 8, paddingVertical: 4, ...Neubrutalism },
-  studioText: { fontSize: 12, fontWeight: "900", color: "#000" },
+  list: { paddingBottom: 40 },
 });

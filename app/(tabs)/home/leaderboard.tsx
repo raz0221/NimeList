@@ -1,57 +1,101 @@
-import { Neubrutalism } from "@/constants/theme";
-import { StyleSheet, View, ScrollView, TouchableOpacity } from "react-native";
+import { COLORS, STATUS_COLORS } from "@/constants/theme";
+import { StyleSheet, View, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
+import { useState, useEffect } from "react";
 
 import { ThemedText } from "@/components/themed-text";
+import { fetchAniList } from "@/src/services/anilist";
+import { NeoButton, NeoAnimeCard } from "@/components/NeoKit";
+import { useTheme } from "@/src/context/ThemeContext";
 
-const LEADERBOARD = [
-  { rank: 1, title: "Fullmetal Alchemist: Brotherhood", score: "9.10" },
-  { rank: 2, title: "Steins;Gate",                      score: "9.07" },
-  { rank: 3, title: "Bleach: Sennen Kessen-hen",        score: "9.03" },
-  { rank: 4, title: "Gintama°",                         score: "9.03" },
-  { rank: 5, title: "Kaguya-sama wa Kokurasetai",       score: "9.02" },
-];
+const LEADERBOARD_QUERY = `
+  query GetLeaderboard {
+    Page(page: 1, perPage: 20) {
+      media(sort: SCORE_DESC, type: ANIME) {
+        id
+        title {
+          romaji
+          english
+        }
+        coverImage {
+          large
+        }
+        startDate {
+          year
+          month
+          day
+        }
+        episodes
+        duration
+        genres
+        description
+        studios(isMain: true) {
+          nodes {
+            name
+          }
+        }
+        source
+        averageScore
+        format
+        isAdult
+        status
+      }
+    }
+  }
+`;
 
 export default function LeaderboardScreen() {
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { colors, isDark } = useTheme();
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const response = await fetchAniList(LEADERBOARD_QUERY);
+        setLeaderboard(response.Page.media || []);
+      } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchLeaderboard();
+  }, []);
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{ fontWeight: "900", color: "#000" }}>← Kembali</ThemedText>
-        </TouchableOpacity>
+        <NeoButton
+          title="← Kembali"
+          color={isDark ? colors.primary : COLORS.PRIMARY}
+          onPress={() => router.back()}
+          style={{ marginBottom: 16 }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14, color: isDark ? '#000' : COLORS.BUTTON_TEXT_LIGHT }}
+        />
         <ThemedText type="title">Top Rated Anime</ThemedText>
       </View>
 
-      <View style={styles.list}>
-        {LEADERBOARD.map((anime) => (
-          <TouchableOpacity
-            key={anime.rank}
-            style={styles.card}
-            onPress={() => router.push(`/explore/${anime.rank}`)}
-          >
-            <View style={styles.rankBadge}>
-              <ThemedText style={styles.rankText}>#{anime.rank}</ThemedText>
-            </View>
-            <View style={styles.info}>
-              <ThemedText style={styles.title}>{anime.title}</ThemedText>
-              <ThemedText style={styles.score}>⭐ {anime.score}</ThemedText>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {isLoading ? (
+        <ActivityIndicator size="large" color={COLORS.ACCENT} style={{ marginTop: 40 }} />
+      ) : (
+        <View style={styles.list}>
+          {leaderboard.map((anime, idx) => (
+            <NeoAnimeCard
+              key={anime.id}
+              anime={anime}
+              rank={idx + 1}
+              onPress={() => router.push(`/explore/${anime.id}`)}
+            />
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: "#F3F4F6", padding: 20 },
+  container:  { flex: 1, padding: 20 },
   header:     { marginBottom: 24, marginTop: 40 },
-  backButton: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: "#FFD166", alignSelf: "flex-start", marginBottom: 16, ...Neubrutalism },
-  list:       { gap: 16, paddingBottom: 40 },
-  card:       { backgroundColor: "#FFFFFF", padding: 16, flexDirection: "row", alignItems: "center", gap: 16, ...Neubrutalism },
-  rankBadge:  { backgroundColor: "#06D6A0", width: 40, height: 40, justifyContent: "center", alignItems: "center", ...Neubrutalism },
-  rankText:   { color: "#000", fontWeight: "900", fontSize: 16 },
-  info:       { flex: 1 },
-  title:      { fontSize: 16, fontWeight: "900", color: "#000" },
-  score:      { fontSize: 14, color: "#6B7280", marginTop: 4, fontWeight: "bold" },
+  list:       { paddingBottom: 40 },
 });

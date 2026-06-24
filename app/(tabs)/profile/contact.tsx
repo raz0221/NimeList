@@ -1,72 +1,122 @@
-import { Neubrutalism } from "@/constants/theme";
-import { StyleSheet, View, ScrollView, TouchableOpacity, TextInput, Alert } from "react-native";
+import { COLORS, STATUS_COLORS } from "@/constants/theme";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Alert, Linking, ScrollView, StyleSheet, View } from "react-native";
 
+import { NeoButton, NeoCard, NeoInput } from "@/components/NeoKit";
 import { ThemedText } from "@/components/themed-text";
 
 export default function ContactScreen() {
+  const { t } = useTranslation();
   const [keluhan, setKeluhan] = useState("");
-  const [history, setHistory] = useState<{id: string, text: string}[]>([]);
+  const [history, setHistory] = useState<{ id: string; text: string }[]>([]);
 
   const handleKirim = () => {
-    if(!keluhan) {
+    if (!keluhan) {
       Alert.alert("Error", "Keluhan tidak boleh kosong!");
       return;
     }
     Alert.alert("Terkirim", "Pesan terkirim ke sistem!");
-    setHistory([{id: Date.now().toString(), text: keluhan}, ...history]);
+    setHistory([{ id: Date.now().toString(), text: keluhan }, ...history]);
     setKeluhan("");
+  };
+
+  const openEmail = () => {
+    Linking.openURL("mailto:23050024@gmail.com");
+  };
+
+  const openInstagram = () => {
+    Linking.openURL("https://instagram.com/apphrodite01");
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{fontWeight: '900', color: '#000'}}>← Kembali</ThemedText>
-        </TouchableOpacity>
-        <ThemedText type="title">Hubungi Kami</ThemedText>
+        <NeoButton
+          title={`← ${t("Kembali")}`}
+          color={COLORS.PRIMARY}
+          onPress={() => router.back()}
+          style={{ marginBottom: 16, alignSelf: "flex-start" }}
+          textStyle={{
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            fontSize: 14,
+          }}
+        />
+        <ThemedText type="title">{t("Hubungi Kami")}</ThemedText>
       </View>
 
       <View style={styles.formContainer}>
-        <TextInput 
-          style={[styles.input, {height: 120}]} 
-          placeholder="Tulis keluhan atau masukan Anda..." 
-          placeholderTextColor="#9CA3AF"
-          value={keluhan} 
-          onChangeText={setKeluhan} 
-          multiline 
-          textAlignVertical="top" 
+        <NeoInput
+          placeholder="Tulis keluhan atau masukan Anda..."
+          placeholderTextColor={COLORS.TEXT_SECONDARY}
+          value={keluhan}
+          onChangeText={setKeluhan}
+          multiline
+          numberOfLines={5}
+          textAlignVertical="top"
+          containerStyle={{ marginBottom: 16 }}
+          style={{ minHeight: 120 }}
         />
-        
-        <TouchableOpacity style={styles.button} onPress={handleKirim}>
-          <ThemedText style={styles.buttonText}>Kirim Pesan</ThemedText>
-        </TouchableOpacity>
+
+        <NeoButton
+          title="Kirim Pesan"
+          color={COLORS.PRIMARY}
+          onPress={handleKirim}
+          style={{ width: "100%", marginBottom: 24 }}
+        />
+
+        <View style={styles.socialButtons}>
+          <NeoButton
+            title="📧 Kirim via Email"
+            color="#fff"
+            onPress={openEmail}
+            style={{ flex: 1 }}
+            textStyle={{ color: "#000", fontSize: 14 }}
+          />
+          <NeoButton
+            title="📸 Instagram"
+            color="#FDE047"
+            onPress={openInstagram}
+            style={{ flex: 1 }}
+            textStyle={{ color: "#000", fontSize: 14 }}
+          />
+        </View>
       </View>
 
       {history.length > 0 && (
         <View style={styles.historySection}>
           <ThemedText style={styles.historyTitle}>Riwayat Tiket:</ThemedText>
-          {history.map(item => (
-            <View key={item.id} style={styles.ticket}>
-              <ThemedText style={{color: '#FFF'}}>{item.text}</ThemedText>
-            </View>
+          {history.map((item) => (
+            <NeoCard
+              key={item.id}
+              color={STATUS_COLORS.FINISHED}
+              contentStyle={styles.ticket}
+            >
+              <ThemedText style={{ color: COLORS.BUTTON_TEXT_LIGHT }}>
+                {item.text}
+              </ThemedText>
+            </NeoCard>
           ))}
         </View>
       )}
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F3F4F6", padding: 20 },
+  container: { flex: 1, backgroundColor: COLORS.BACKGROUND, padding: 20 },
   header: { marginBottom: 24, marginTop: 40 },
-  backButton: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#FFD166', alignSelf: 'flex-start', marginBottom: 16, ...Neubrutalism },
-  formContainer: { gap: 16, marginBottom: 24 },
-  input: { ...Neubrutalism, padding: 16, fontSize: 16, backgroundColor: "#FFFFFF", color: "#000000" },
-  button: { height: 50, backgroundColor: "#FFD166", ...Neubrutalism, justifyContent: "center", alignItems: "center" },
-  buttonText: { color: "#000000", fontSize: 18, fontWeight: "900" },
+  formContainer: { marginBottom: 32 },
+  socialButtons: { flexDirection: "row", gap: 12 },
   historySection: { gap: 12 },
-  historyTitle: { fontWeight: "900", fontSize: 16, color: "#000" },
-  ticket: { backgroundColor: "#118AB2", padding: 16, ...Neubrutalism }
+  historyTitle: {
+    fontWeight: "900",
+    fontSize: 16,
+    color: COLORS.TEXT_MAIN,
+    marginBottom: 8,
+  },
+  ticket: { padding: 16 },
 });

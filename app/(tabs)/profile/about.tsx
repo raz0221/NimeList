@@ -1,20 +1,29 @@
-import { Neubrutalism } from "@/constants/theme";
-import { StyleSheet, View, ScrollView, TouchableOpacity } from "react-native";
+import { COLORS } from "@/constants/theme";
+import { StyleSheet, View, ScrollView } from "react-native";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 import { ThemedText } from "@/components/themed-text";
+import { NeoButton, NeoCard } from "@/components/NeoKit";
+import { useTheme } from "@/src/context/ThemeContext";
 
 export default function AboutScreen() {
+  const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={{fontWeight: '900', color: '#000'}}>← Kembali</ThemedText>
-        </TouchableOpacity>
-        <ThemedText type="title">Tentang Aplikasi</ThemedText>
+        <NeoButton
+          title={`← ${t("Kembali")}`}
+          color={isDark ? colors.primary : COLORS.PRIMARY}
+          onPress={() => router.back()}
+          style={{ marginBottom: 16, alignSelf: 'flex-start' }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14, color: isDark ? '#000' : COLORS.BUTTON_TEXT_LIGHT }}
+        />
+        <ThemedText type="title">{t("Tentang Aplikasi")}</ThemedText>
       </View>
 
-      <View style={styles.card}>
+      <NeoCard contentStyle={styles.card}>
         <ThemedText style={styles.title}>AniTrack v1.0.0</ThemedText>
         <ThemedText style={styles.desc}>
           AniTrack adalah aplikasi pelacakan anime dengan desain Neubrutalism. Dibangun menggunakan React Native dan Expo Router.
@@ -22,16 +31,15 @@ export default function AboutScreen() {
         <ThemedText style={styles.desc}>
           © 2026 AniTrack Project. Semua hak cipta dilindungi.
         </ThemedText>
-      </View>
+      </NeoCard>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F3F4F6", padding: 20 },
+  container: { flex: 1, padding: 20 },
   header: { marginBottom: 24, marginTop: 40 },
-  backButton: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#FFD166', alignSelf: 'flex-start', marginBottom: 16, ...Neubrutalism },
-  card: { backgroundColor: "#FFF", padding: 24, ...Neubrutalism },
-  title: { fontSize: 20, fontWeight: "900", color: "#000", marginBottom: 12 },
-  desc: { fontSize: 16, color: "#374151", marginBottom: 16, lineHeight: 24 }
+  card: { padding: 24 },
+  title: { fontSize: 20, fontWeight: "900", marginBottom: 12 },
+  desc: { fontSize: 16, marginBottom: 16, lineHeight: 24 }
 });

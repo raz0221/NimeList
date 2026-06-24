@@ -1,195 +1,195 @@
-import { Neubrutalism } from "@/constants/theme";
+import { COLORS, STATUS_COLORS, Neubrutalism } from "@/constants/theme";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-
-import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { fetchAniList } from "@/src/services/anilist";
+import { NeoCard } from "@/components/NeoKit";
+import { Skeleton } from "@/components/Skeleton";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { useTheme } from '@/src/context/ThemeContext';
 
-const DUMMY_TRENDING = [
-  {
-    id: "1",
-    title: "Jujutsu Kaisen",
-    img: "https://myanimelist.net/images/anime/1171/109222.jpg",
-  },
-  {
-    id: "2",
-    title: "Attack on Titan",
-    img: "https://myanimelist.net/images/anime/10/47347.jpg",
-  },
-];
+const TRENDING_QUERY = `
+  query GetTrending {
+    Page(page: 1, perPage: 10) {
+      media(sort: TRENDING_DESC, type: ANIME, status: RELEASING) {
+        id
+        title { romaji english }
+        coverImage { large }
+        averageScore
+        format
+      }
+    }
+  }
+`;
 
 const NAV_BUTTONS = [
-  { label: "🏆", sub: "Top Rated", bg: "#FFD166", route: "/home/leaderboard" },
-  {
-    label: "📡",
-    sub: "Sedang Tayang",
-    bg: "#EF476F",
-    route: "/home/top-airing",
-  },
-  { label: "🌸", sub: "Musiman", bg: "#06D6A0", route: "/home/seasonal" },
-  { label: "⏳", sub: "Segera Tayang", bg: "#118AB2", route: "/home/upcoming" },
+  { icon: "🏆", label: "Top Rated",       color: "#FDE047", route: "/home/leaderboard" },
+  { icon: "📡", label: "Sedang Tayang",   color: "#86EFAC", route: "/home/top-airing" },
+  { icon: "🌸", label: "Musiman",         color: "#F9A8D4", route: "/home/seasonal" },
+  { icon: "⏳", label: "Segera Tayang",   color: "#93C5FD", route: "/home/upcoming" },
 ];
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
+  const [trending, setTrending] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { colors, isDark } = useTheme();
+
+  useEffect(() => {
+    fetchAniList(TRENDING_QUERY)
+      .then(r => setTrending(r.Page.media || []))
+      .catch(e => console.error(e))
+      .finally(() => setIsLoading(false));
+  }, []);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#111827", dark: "#0F172A" }}
-      headerImage={
-        <Image
-          source={{
-            uri: "https://wallpapers-clan.com/wp-content/uploads/2024/04/konosuba-megumin-dark-desktop-wallpaper-preview.jpg",
-          }}
-          style={styles.headerImage}
-        />
-      }
-    >
-      {/* ── Header row ── */}
-      <View style={styles.headerRow}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title">Beranda</ThemedText>
-        </ThemedView>
-        <TouchableOpacity
-          style={styles.notifButton}
-          onPress={() => router.push("/modal")}
-        >
-          <ThemedText style={styles.notifText}>🔔 Notifikasi</ThemedText>
+    <ScrollView style={[styles.root, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* ── App Bar ── */}
+      <View style={styles.appBar}>
+        <View>
+          <ThemedText style={styles.appBarTitle}>AniTrack</ThemedText>
+          <ThemedText style={[styles.appBarSub, { color: colors.textMuted }]}>Selamat datang! 👋</ThemedText>
+        </View>
+        <TouchableOpacity onPress={() => router.push("/modal")} style={styles.notifBtn}>
+          <View style={styles.notifBtnShadow} />
+          <View style={styles.notifBtnMain}>
+            <Text style={styles.notifIcon}>🔔</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
-      <ThemedText style={styles.slogan}>Selamat datang di AniTrack!</ThemedText>
-
-      {/* ── Berita Banner ── */}
-      <TouchableOpacity
-        style={styles.newsBanner}
-        onPress={() => router.push("/home/news")}
-      >
-        <View>
-          <ThemedText style={styles.newsBadge}>📰 BERITA TERBARU</ThemedText>
-          <ThemedText style={styles.newsTeaser}>
-            Chainsaw Man S2 & One Punch Man S3 diumumkan!
-          </ThemedText>
+      {/* ── News Banner ── */}
+      <TouchableOpacity onPress={() => router.push("/home/news")} style={styles.mb20}>
+        <View style={[styles.newsShadow, { backgroundColor: isDark ? COLORS.ACCENT : '#000' }]} />
+        <View style={[styles.newsBanner, { backgroundColor: isDark ? colors.card : COLORS.ACCENT, borderColor: isDark ? COLORS.ACCENT : '#000' }]}>
+          <View style={styles.newsBadge}>
+            <Text style={styles.newsBadgeText}>BERITA</Text>
+          </View>
+          <ThemedText style={styles.newsTitle}>📰 Update Anime Terbaru</ThemedText>
+          <ThemedText style={styles.newsSub}>Cek berita dan jadwal anime minggu ini!</ThemedText>
+          <ThemedText style={styles.newsArrow}>→</ThemedText>
         </View>
-        <ThemedText style={styles.newsArrow}>→</ThemedText>
       </TouchableOpacity>
 
-      {/* ── 4 Nav Buttons ── */}
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
-          Jelajahi Charts
-        </ThemedText>
-        <View style={styles.navList}>
-          {NAV_BUTTONS.map((btn) => (
-            <TouchableOpacity
-              key={btn.route}
-              style={[styles.navButton, { backgroundColor: btn.bg }]}
-              onPress={() => router.push(btn.route as any)}
-            >
-              <ThemedText style={styles.navButtonText}>
-                {btn.label} {btn.sub}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ThemedView>
+      {/* ── Charts Grid ── */}
+      <View style={styles.sectionHeader}>
+        <ThemedText style={styles.sectionLabel}>Jelajahi Charts</ThemedText>
+      </View>
+      <View style={styles.navGrid}>
+        {NAV_BUTTONS.map(btn => (
+          <TouchableOpacity
+            key={btn.route}
+            style={styles.navItem}
+            onPress={() => router.push(btn.route as any)}
+          >
+            <View style={[styles.navShadow, { backgroundColor: isDark ? btn.color : '#000' }]} />
+            <View style={[styles.navCard, { backgroundColor: isDark ? colors.card : btn.color, borderColor: isDark ? btn.color : '#000' }]}>
+              <Text style={styles.navIcon}>{btn.icon}</Text>
+              <ThemedText style={[styles.navLabel, { color: isDark ? '#fff' : '#000' }]}>{btn.label}</ThemedText>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-      {/* ── Jadwal Lengkap ── */}
-      <ThemedView style={styles.section}>
-        <TouchableOpacity
-          style={styles.scheduleButton}
-          onPress={() => router.push("/home/schedule")}
-        >
-          <ThemedText style={styles.scheduleButtonText}>
-            📅 Lihat Jadwal Lengkap
-          </ThemedText>
+      {/* ── Trending Now ── */}
+      <View style={styles.sectionHeader}>
+        <ThemedText style={styles.sectionLabel}>🔥 Trending Sekarang</ThemedText>
+        <TouchableOpacity onPress={() => router.push("/home/top-airing" as any)}>
+          <ThemedText style={[styles.seeAll, { color: isDark ? colors.primary : COLORS.ACCENT }]}>Lihat Semua →</ThemedText>
         </TouchableOpacity>
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.trendingScroll}
+      >
+        {isLoading
+          ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} width={120} height={196} />)
+          : trending.map(anime => {
+              const title = anime.title.romaji || anime.title.english;
+              return (
+                <TouchableOpacity
+                  key={anime.id}
+                  style={styles.trendCard}
+                  onPress={() => router.push(`/explore/${anime.id}`)}
+                >
+                  <NeoCard contentStyle={{ padding: 0 }}>
+                    <Image
+                      source={{ uri: anime.coverImage?.large }}
+                      style={styles.trendImg}
+                      contentFit="cover"
+                    />
+                    <View style={styles.trendInfo}>
+                      <ThemedText style={styles.trendTitle} numberOfLines={1}>{title}</ThemedText>
+                      <ThemedText style={[styles.trendMeta, { color: colors.textMuted }]}>{anime.format || "TV"} · {anime.averageScore ? `⭐${(anime.averageScore/10).toFixed(1)}` : "—"}</ThemedText>
+                    </View>
+                  </NeoCard>
+                </TouchableOpacity>
+              );
+            })}
+      </ScrollView>
+
+      {/* ── Schedule CTA ── */}
+      <TouchableOpacity onPress={() => router.push("/home/schedule")} style={styles.scheduleBtn}>
+        <View style={[styles.scheduleShadow, { backgroundColor: isDark ? STATUS_COLORS.ON_AIR : '#000' }]} />
+        <View style={[styles.scheduleBtnMain, { backgroundColor: isDark ? colors.card : STATUS_COLORS.ON_AIR, borderColor: isDark ? STATUS_COLORS.ON_AIR : '#000' }]}>
+          <ThemedText style={[styles.scheduleBtnText, { color: isDark ? '#fff' : '#000' }]}>📅 Lihat Jadwal Lengkap →</ThemedText>
+        </View>
+      </TouchableOpacity>
+
+      <View style={{ height: 32 }} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    height: "100%",
-    width: "100%",
-    bottom: 0,
-    left: 0,
-    position: "absolute",
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  titleContainer: { flexDirection: "row", alignItems: "center", gap: 8 },
-  notifButton: {
-    backgroundColor: "#118AB2",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    ...Neubrutalism,
-  },
-  notifText: { color: "#FFFFFF", fontWeight: "bold" },
-  slogan: { color: "#9CA3AF", fontSize: 16, marginBottom: 16 },
+  root: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 56, paddingBottom: 20 },
 
-  newsBanner: {
-    backgroundColor: "#EF476F",
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 28,
-    ...Neubrutalism,
-  },
-  newsBadge: {
-    color: "#FFFFFF",
-    fontWeight: "900",
-    fontSize: 11,
-    marginBottom: 6,
-  },
-  newsTeaser: { color: "#FFFFFF", fontWeight: "bold", fontSize: 15 },
-  newsArrow: { color: "#FFFFFF", fontWeight: "900", fontSize: 22 },
+  // AppBar
+  appBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },
+  appBarTitle: { fontSize: 26, fontWeight: "900" },
+  appBarSub: { fontSize: 13, fontWeight: "600", marginTop: 2 },
+  notifBtn: { position: "relative", width: 44, height: 44 },
+  notifBtnShadow: { position: "absolute", top: 3, left: 3, right: -3, bottom: -3, backgroundColor: "#000", borderRadius: 99 },
+  notifBtnMain: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: STATUS_COLORS.FINISHED, borderRadius: 99, borderWidth: Neubrutalism.borderWidth, borderColor: "#000", justifyContent: "center", alignItems: "center" },
+  notifIcon: { fontSize: 20 },
 
-  section: { marginBottom: 30 },
-  sectionTitle: { marginBottom: 16, color: "#000000", fontWeight: "900" },
+  // News Banner
+  mb20: { marginBottom: 24, position: "relative" },
+  newsShadow: { position: "absolute", top: 4, left: 4, right: -4, bottom: -4, backgroundColor: "#000", borderRadius: Neubrutalism.borderRadius, zIndex: 0 },
+  newsBanner: { backgroundColor: COLORS.ACCENT, borderRadius: Neubrutalism.borderRadius, borderWidth: Neubrutalism.borderWidth, borderColor: "#000", padding: 16, position: "relative", zIndex: 1 },
+  newsBadge: { backgroundColor: "#000", borderRadius: 4, alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 3, marginBottom: 8 },
+  newsBadgeText: { color: "#fff", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
+  newsTitle: { fontSize: 16, fontWeight: "900", marginBottom: 4 },
+  newsSub: { fontSize: 13, fontWeight: "600" },
+  newsArrow: { position: "absolute", right: 16, top: "50%", fontSize: 22, fontWeight: "900" },
 
-  // 4-button nav list
-  navList: { gap: 12 },
-  navButton: { padding: 16, alignItems: "center", ...Neubrutalism },
-  navButtonText: { color: "#000000", fontSize: 16, fontWeight: "900" },
+  // Section header
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  sectionLabel: { fontSize: 16, fontWeight: "900" },
+  seeAll: { fontSize: 12, fontWeight: "700" },
+
+  // Nav Grid
+  navGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 28 },
+  navItem: { width: "47%", position: "relative" },
+  navShadow: { position: "absolute", top: 3, left: 3, right: -3, bottom: -3, backgroundColor: "#000", borderRadius: Neubrutalism.borderRadius, zIndex: 0 },
+  navCard: { borderRadius: Neubrutalism.borderRadius, borderWidth: Neubrutalism.borderWidth, borderColor: "#000", padding: 16, position: "relative", zIndex: 1, height: 72, justifyContent: "center" },
+  navIcon: { fontSize: 20, marginBottom: 4 },
+  navLabel: { fontSize: 13, fontWeight: "900" },
 
   // Trending
-  trendingScroll: { gap: 16, paddingBottom: 8, paddingRight: 8 },
-  trendingCardContainer: { width: 140 },
-  trendingCardShadow: {
-    position: "absolute",
-    top: 4,
-    left: 4,
-    width: "100%",
-    height: "100%",
-    backgroundColor: "#000000",
-  },
-  trendingCard: { width: "100%", backgroundColor: "#FFFFFF", ...Neubrutalism },
-  trendingImage: {
-    width: "100%",
-    height: 180,
-    borderBottomWidth: 3,
-    borderColor: "#000000",
-  },
-  trendingTitle: {
-    padding: 12,
-    fontSize: 14,
-    fontWeight: "900",
-    color: "#000000",
-    textAlign: "center",
-  },
+  trendingScroll: { gap: 12, paddingBottom: 8, paddingRight: 8, marginBottom: 28 },
+  trendCard: { width: 120 },
+  trendImg: { width: "100%", height: 150, borderBottomWidth: Neubrutalism.borderWidth, borderColor: "#000" },
+  trendInfo: { padding: 8 },
+  trendTitle: { fontSize: 11, fontWeight: "900", marginBottom: 2 },
+  trendMeta: { fontSize: 10, fontWeight: "600" },
 
-  scheduleButton: {
-    backgroundColor: "#06D6A0",
-    padding: 16,
-    alignItems: "center",
-    ...Neubrutalism,
-  },
-  scheduleButtonText: { color: "#000000", fontSize: 16, fontWeight: "900" },
+  scheduleBtn: { position: "relative", marginBottom: 8 },
+  scheduleShadow: { position: "absolute", top: 4, left: 4, right: -4, bottom: -4, borderRadius: Neubrutalism.borderRadius },
+  scheduleBtnMain: { borderRadius: Neubrutalism.borderRadius, borderWidth: Neubrutalism.borderWidth, paddingVertical: 14, alignItems: "center" },
+  scheduleBtnText: { fontSize: 15, fontWeight: "900" },
 });

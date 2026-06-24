@@ -1,9 +1,10 @@
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Neubrutalism } from '@/constants/theme';
+import { COLORS, STATUS_COLORS } from '@/constants/theme';
+import { NeoButton, NeoCard } from '@/components/NeoKit';
 
 export default function ModalScreen() {
   return (
@@ -11,20 +12,23 @@ export default function ModalScreen() {
       <ThemedText type="title" style={{ marginBottom: 20 }}>Notifikasi & Pengumuman</ThemedText>
       
       <View style={styles.notificationList}>
-        <View style={styles.notificationCard}>
+        <NeoCard contentStyle={styles.notificationCard}>
           <ThemedText style={styles.notifTitle}>Sistem Update v2.0</ThemedText>
           <ThemedText style={styles.notifDesc}>Aplikasi akan mengalami pemeliharaan pada pukul 00:00 WIB.</ThemedText>
-        </View>
+        </NeoCard>
 
-        <View style={styles.notificationCard}>
+        <NeoCard contentStyle={styles.notificationCard}>
           <ThemedText style={styles.notifTitle}>Episode Baru Tersedia!</ThemedText>
           <ThemedText style={styles.notifDesc}>Jujutsu Kaisen Episode 13 sudah bisa ditonton.</ThemedText>
-        </View>
+        </NeoCard>
       </View>
 
-      <Link href="/" dismissTo style={styles.linkButton}>
-        <ThemedText style={styles.linkText}>Tutup</ThemedText>
-      </Link>
+      <NeoButton
+        title="Tutup"
+        color={STATUS_COLORS.ON_AIR}
+        onPress={() => router.back()}
+        style={{ width: '100%', marginTop: 16 }}
+      />
     </ThemedView>
   );
 }
@@ -33,39 +37,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#F3F4F6', // Light background for contrast
+    backgroundColor: COLORS.BACKGROUND,
   },
   notificationList: {
     gap: 16,
     marginBottom: 24,
   },
   notificationCard: {
-    backgroundColor: '#FFFFFF',
     padding: 16,
-    ...Neubrutalism,
   },
   notifTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#000000',
+    color: COLORS.TEXT_MAIN,
     marginBottom: 4,
   },
   notifDesc: {
     fontSize: 14,
-    color: '#374151',
-  },
-  linkButton: {
-    marginTop: 15,
-    paddingVertical: 15,
-    backgroundColor: '#06D6A0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    ...Neubrutalism,
-  },
-  linkText: {
-    color: '#000000',
-    fontWeight: '900',
-    fontSize: 16,
+    color: COLORS.TEXT_SECONDARY,
   },
 });

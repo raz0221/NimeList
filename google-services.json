@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "963055544710",
+    "project_id": "anitrack-app-d8f2a",
+    "storage_bucket": "anitrack-app-d8f2a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:963055544710:android:93d2cca2adf36421e3e407",
+        "android_client_info": {
+          "package_name": "com.anonymous.AnnasFazrulFarras_IlkomD"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "963055544710-fsc5frmrsj4v45tj81cl2bl52iq4ic48.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVglMfKkS2_IxxaBpO5bJs0njF6EDUYUQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "963055544710-fsc5frmrsj4v45tj81cl2bl52iq4ic48.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

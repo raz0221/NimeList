@@ -1,136 +1,308 @@
-import { Neubrutalism } from "@/constants/theme";
-import { Image } from "expo-image";
-import { useState } from "react";
-import { Alert, StyleSheet, TextInput, TouchableOpacity, View, ScrollView } from "react-native";
+import { COLORS, STATUS_COLORS, Neubrutalism } from "@/constants/theme";
 import { router } from "expo-router";
-
-import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { auth, db } from "@/src/lib/firebase";
+import { collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from "firebase/firestore";
+import { NeoButton, NeoCard, NeoAnimeCard } from "@/components/NeoKit";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { fetchAniList } from "@/src/services/anilist";
+
+const BATCH_QUERY = `
+  query GetAnimeBatch($ids: [Int]) {
+    Page(page: 1, perPage: 50) {
+      media(id_in: $ids, type: ANIME) {
+        id
+        title { romaji english }
+        coverImage { large extraLarge }
+        startDate { year month day }
+        episodes
+        duration
+        genres
+        description
+        studios(isMain: true) { nodes { name } }
+        source
+        averageScore
+        format
+        isAdult
+      }
+    }
+  }
+`;
+
+// Tipe eksplisit dokumen user_collections dari Firestore
+interface FirestoreCollectionDoc {
+  id: string;
+  animeId?: string | number;
+  userId?: string;
+  status?: string;
+  title?: string;
+  englishTitle?: string;
+  poster?: string;
+  episodes?: number;
+  duration?: number;
+  rating?: string;
+  type?: string;
+  genres?: string[];
+  genre?: string;
+  description?: string;
+  source?: string;
+  studios?: string[];
+  startDate?: { year?: number; month?: number; day?: number };
+  isAdult?: boolean;
+}
+
+const CATEGORIES = [
+  { id: "Watching",   label: "Watching",   icon: "▶️", color: STATUS_COLORS.ON_AIR },
+  { id: "Completed",  label: "Completed",  icon: "✅", color: STATUS_COLORS.FINISHED },
+  { id: "Planning",   label: "Planning",   icon: "📋", color: "#93C5FD" },
+  { id: "Dropped",    label: "Dropped",    icon: "🗑️", color: STATUS_COLORS.MOVIE },
+];
 
 export default function ManageScreen() {
-  const [activeCategory, setActiveCategory] = useState("Sedang Ditonton");
-  const [judulAnime, setJudulAnime] = useState("");
-  const [episode, setEpisode] = useState("");
-  
-  const [daftarAnime, setDaftarAnime] = useState([
-    { id: "1", judul: "Jujutsu Kaisen", episode: "12", kategori: "Sedang Ditonton" },
-    { id: "2", judul: "Naruto", episode: "500", kategori: "Selesai" },
-    { id: "3", judul: "One Piece", episode: "1000", kategori: "Rencana Tonton" }
-  ]);
+  const [activeCategory, setActiveCategory] = useState("Watching");
+  const [daftarAnime, setDaftarAnime] = useState<FirestoreCollectionDoc[]>([]);
+  const [richAnimeData, setRichAnimeData] = useState<Record<string, any>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const user = auth.currentUser;
 
-  const handleTambahAnime = () => {
-    if (!judulAnime.trim() || !episode.trim()) {
-      Alert.alert("Error", "Judul Anime dan Total Episode tidak boleh kosong!");
-      return;
-    }
-    Alert.alert("Sukses", `Data "${judulAnime}" ditambahkan ke kategori ${activeCategory}!`);
-    setDaftarAnime([{ id: Date.now().toString(), judul: judulAnime, episode, kategori: activeCategory }, ...daftarAnime]);
-    setJudulAnime("");
-    setEpisode("");
+  useEffect(() => {
+    if (!user) { setIsLoading(false); return; }
+    const q = query(collection(db, "user_collections"), where("userId", "==", user.uid));
+    const unsub = onSnapshot(q, async (snap) => {
+      const collections = snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreCollectionDoc));
+      setDaftarAnime(collections);
+
+      const animeIds = collections.map(c => parseInt(String(c.animeId ?? ''), 10)).filter(id => !isNaN(id));
+      if (animeIds.length > 0) {
+        try {
+          const res = await fetchAniList(BATCH_QUERY, { ids: animeIds });
+          const mediaList = res.Page.media || [];
+          const dataMap: Record<string, any> = {};
+          mediaList.forEach((m: any) => { dataMap[m.id.toString()] = m; });
+          setRichAnimeData(dataMap);
+        } catch (error) {
+          console.error("Batch fetch error", error);
+        }
+      }
+      setIsLoading(false);
+    }, err => {
+      Alert.alert("Error", "Gagal memuat watchlist.");
+      setIsLoading(false);
+    });
+    return () => unsub();
+  }, [user]);
+
+  const handleHapus = async (docId: string, title: string) => {
+    Alert.alert("Hapus?", `Hapus "${title}" dari koleksi?`, [
+      { text: "Batal", style: "cancel" },
+      { text: "Hapus", style: "destructive", onPress: async () => {
+        try { await deleteDoc(doc(db, "user_collections", docId)); }
+        catch { Alert.alert("Gagal", "Tidak bisa menghapus item."); }
+      }},
+    ]);
   };
 
-  const filteredAnime = daftarAnime.filter(a => a.kategori === activeCategory);
+  const handleUpdateStatus = async (docId: string, newStatus: string) => {
+    try { await updateDoc(doc(db, "user_collections", docId), { status: newStatus }); }
+    catch { Alert.alert("Gagal", "Tidak bisa memperbarui status."); }
+  };
+
+  const filteredAnime = daftarAnime.filter(a => a.status === activeCategory);
+  const activeCat = CATEGORIES.find(c => c.id === activeCategory);
+
+  if (!user) {
+    return (
+      <View style={styles.authWall}>
+        <View style={styles.authCard}>
+          <View style={styles.authShadow} />
+          <View style={styles.authCardInner}>
+            <Text style={styles.authIcon}>🎌</Text>
+            <Text style={styles.authTitle}>Koleksi Anime</Text>
+            <Text style={styles.authSub}>Login untuk kelola daftar tontonanmu</Text>
+            <NeoButton title="Masuk / Login" color={STATUS_COLORS.ON_AIR} onPress={() => router.push("/(tabs)/profile/login")} style={{ width: "100%", marginBottom: 10 }} />
+            <NeoButton title="Daftar Akun" color={COLORS.PRIMARY} onPress={() => router.push("/(tabs)/profile/register")} style={{ width: "100%" }} />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#111827", dark: "#0F172A" }}
-      headerImage={
-        <Image source={{ uri: "https://4kwallpapers.com/images/walls/thumbs_3t/26035.jpg" }} style={styles.headerImage} />
-      }
-    >
-      <View style={styles.headerRow}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title">Manajemen Tontonan</ThemedText>
-        </ThemedView>
-      </View>
-
-      <ThemedText style={styles.slogan}>Dashboard Koleksi Anime Anda</ThemedText>
-
-      <View style={styles.headerRow}>
-        <TouchableOpacity style={styles.navButton} onPress={() => router.push("/manage/favorite")}>
-          <ThemedText style={styles.navText}>⭐ Koleksi Favorit</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton} onPress={() => router.push("/manage/stats")}>
-          <ThemedText style={styles.navText}>📊 Lihat Statistik</ThemedText>
-        </TouchableOpacity>
-      </View>
-
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Pilih Kategori</ThemedText>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-          {["Sedang Ditonton", "Selesai", "Rencana Tonton", "Dropped"].map((cat) => (
-            <TouchableOpacity 
-              key={cat} 
-              style={[styles.catBadge, activeCategory === cat && styles.catBadgeActive]}
-              onPress={() => setActiveCategory(cat)}
-            >
-              <ThemedText style={[styles.catText, activeCategory === cat && styles.catTextActive]}>{cat}</ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </ThemedView>
-
-      <View style={styles.formContainer}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Tambah ke {activeCategory}</ThemedText>
-        <TextInput
-          style={styles.input}
-          placeholder="Judul Anime"
-          placeholderTextColor="#6B7280"
-          value={judulAnime}
-          onChangeText={setJudulAnime}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Total Episode"
-          placeholderTextColor="#6B7280"
-          value={episode}
-          onChangeText={setEpisode}
-          keyboardType="numeric"
-        />
-        <TouchableOpacity style={styles.button} onPress={handleTambahAnime}>
-          <ThemedText style={styles.buttonText}>Simpan Anime</ThemedText>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.listContainer}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Daftar {activeCategory}</ThemedText>
-        {filteredAnime.length === 0 ? (
-          <ThemedText style={{color: "#6B7280", fontStyle: "italic"}}>Tidak ada data di kategori ini.</ThemedText>
-        ) : (
-          filteredAnime.map((anime) => (
-            <View key={anime.id} style={styles.animeCard}>
-              <ThemedText style={styles.animeTitle}>{anime.judul}</ThemedText>
-              <ThemedText style={styles.animeEpisode}>{anime.episode} Episode</ThemedText>
+    <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* ── App Bar ── */}
+      <View style={styles.appBar}>
+        <View>
+          <Text style={styles.appBarTitle}>Koleksiku</Text>
+          <Text style={styles.appBarSub}>{daftarAnime.length} anime dalam koleksi</Text>
+        </View>
+        <View style={styles.appBarActions}>
+          <TouchableOpacity onPress={() => router.push("/manage/stats")} style={styles.appBarBtn}>
+            <View style={styles.appBarBtnShadow} />
+            <View style={[styles.appBarBtnMain, { backgroundColor: COLORS.PRIMARY }]}>
+              <Text style={styles.appBarBtnText}>📊</Text>
             </View>
-          ))
-        )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/manage/favorite")} style={styles.appBarBtn}>
+            <View style={styles.appBarBtnShadow} />
+            <View style={[styles.appBarBtnMain, { backgroundColor: "#FDE047" }]}>
+              <Text style={styles.appBarBtnText}>⭐</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={{height: 40}} />
-    </ParallaxScrollView>
+
+      {/* ── Stats Row ── */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
+        {CATEGORIES.map(cat => {
+          const count = daftarAnime.filter(a => a.status === cat.id).length;
+          return (
+            <View key={cat.id} style={styles.statItem}>
+              <View style={styles.statShadow} />
+              <View style={[styles.statCard, { backgroundColor: cat.color }]}>
+                <Text style={styles.statCount}>{count}</Text>
+                <Text style={styles.statLabel}>{cat.label}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      {/* ── Category Tabs ── */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
+        {CATEGORIES.map(cat => (
+          <TouchableOpacity
+            key={cat.id}
+            onPress={() => setActiveCategory(cat.id)}
+            style={[styles.tab, activeCategory === cat.id && { backgroundColor: activeCat?.color || COLORS.PRIMARY }]}
+          >
+            <Text style={[styles.tabText, activeCategory === cat.id && styles.tabTextActive]}>
+              {cat.icon} {cat.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* ── List ── */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionLabel}>Daftar {activeCat?.label}</Text>
+        <Text style={styles.sectionCount}>{filteredAnime.length} anime</Text>
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator size="large" color={COLORS.PRIMARY} style={{ marginTop: 40 }} />
+      ) : filteredAnime.length === 0 ? (
+        <View style={styles.empty}>
+          <View style={styles.emptyShadow} />
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyIcon}>📂</Text>
+            <Text style={styles.emptyTitle}>Daftar Kosong</Text>
+            <Text style={styles.emptySub}>Belum ada anime di kategori {activeCat?.label}</Text>
+          </View>
+        </View>
+      ) : (
+        <View style={{ gap: 0 }}>
+          {filteredAnime.map((anime, idx) => {
+            const richData = richAnimeData[String(anime.animeId ?? '')] || {};
+            const fakeAnime = {
+              id: anime.animeId || anime.id,
+              title: richData.title || { romaji: anime.title, english: anime.englishTitle },
+              coverImage: richData.coverImage || { large: anime.poster },
+              status: anime.status,
+              episodes: richData.episodes || anime.episodes,
+              duration: richData.duration || anime.duration,
+              averageScore: richData.averageScore || (anime.rating && anime.rating !== "-" ? parseFloat(anime.rating) * 10 : null),
+              format: richData.format || anime.type,
+              genres: richData.genres || anime.genres || (anime.genre ? [anime.genre] : []),
+              description: richData.description || anime.description,
+              source: richData.source || anime.source,
+              studios: richData.studios || { nodes: anime.studios?.map((name: string) => ({ name })) || [] },
+              startDate: richData.startDate || anime.startDate,
+              isAdult: richData.isAdult || anime.isAdult,
+            };
+            return (
+              <View key={anime.id}>
+                <NeoAnimeCard
+                  anime={fakeAnime}
+                  color={idx % 2 === 0 ? COLORS.CARD_BACKGROUND : "#F8F8F8"}
+                  onPress={() => router.push(`/(tabs)/explore/${anime.animeId}`)}
+                  footerComponent={
+                    <View style={styles.cardActions}>
+                      <View style={{ flex: 1 }}>
+                        <NeoButton
+                          title="❤️ Favorit"
+                          color="#FDE047"
+                          onPress={() => handleUpdateStatus(anime.id, "Favorite")}
+                          textStyle={{ fontSize: 13, paddingVertical: 8 }}
+                          style={{ width: '100%' }}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <NeoButton
+                          title="✕ Hapus"
+                          color={COLORS.ACCENT}
+                          onPress={() => handleHapus(anime.id, anime.title ?? '')}
+                          textStyle={{ fontSize: 13, color: '#fff', paddingVertical: 8 }}
+                          style={{ width: '100%' }}
+                        />
+                      </View>
+                    </View>
+                  }
+                />
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12 },
-  titleContainer: { flexDirection: "row", alignItems: "center" },
-  navButton: { flex: 1, backgroundColor: "#FFD166", paddingVertical: 12, alignItems: "center", ...Neubrutalism },
-  navText: { color: "#000000", fontWeight: "900", fontSize: 14 },
-  slogan: { color: "#9CA3AF", fontSize: 16, marginBottom: 20 },
-  headerImage: { height: "100%", width: "100%", bottom: 0, left: 0, position: "absolute" },
-  section: { marginBottom: 24 },
-  sectionTitle: { color: "#000000", fontWeight: "900", marginBottom: 12 },
-  categoryScroll: { gap: 12, paddingBottom: 8 },
-  catBadge: { backgroundColor: "#FFFFFF", paddingHorizontal: 16, paddingVertical: 8, ...Neubrutalism },
-  catBadgeActive: { backgroundColor: "#06D6A0" },
-  catText: { color: "#000000", fontWeight: "bold" },
-  catTextActive: { fontWeight: "900" },
-  formContainer: { gap: 12, marginBottom: 24 },
-  input: { backgroundColor: "#FFFFFF", padding: 16, fontSize: 16, color: "#000000", ...Neubrutalism },
-  button: { backgroundColor: "#118AB2", padding: 16, alignItems: "center", marginTop: 4, ...Neubrutalism },
-  buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
-  listContainer: { gap: 12 },
-  animeCard: { backgroundColor: "#EF476F", padding: 16, ...Neubrutalism },
-  animeTitle: { color: "#FFFFFF", fontSize: 18, fontWeight: "900", marginBottom: 4 },
-  animeEpisode: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
+  root: { flex: 1, backgroundColor: COLORS.BACKGROUND },
+  content: { paddingHorizontal: 20, paddingTop: 56, paddingBottom: 20 },
+
+  authWall: { flex: 1, backgroundColor: COLORS.BACKGROUND, justifyContent: "center", padding: 24 },
+  authCard: { position: "relative" },
+  authShadow: { position: "absolute", top: 6, left: 6, right: -6, bottom: -6, backgroundColor: "#000", borderRadius: Neubrutalism.borderRadius },
+  authCardInner: { backgroundColor: COLORS.CARD_BACKGROUND, borderRadius: Neubrutalism.borderRadius, borderWidth: Neubrutalism.borderWidth, borderColor: "#000", padding: 28, alignItems: "center" },
+  authIcon: { fontSize: 48, marginBottom: 12 },
+  authTitle: { fontSize: 22, fontWeight: "900", color: COLORS.TEXT_MAIN, marginBottom: 6 },
+  authSub: { fontSize: 14, color: COLORS.TEXT_SECONDARY, fontWeight: "600", marginBottom: 24, textAlign: "center" },
+
+  appBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
+  appBarTitle: { fontSize: 26, fontWeight: "900", color: COLORS.TEXT_MAIN },
+  appBarSub: { fontSize: 13, color: COLORS.TEXT_SECONDARY, fontWeight: "600", marginTop: 2 },
+  appBarActions: { flexDirection: "row", gap: 10 },
+  appBarBtn: { position: "relative", width: 44, height: 44 },
+  appBarBtnShadow: { position: "absolute", top: 3, left: 3, right: -3, bottom: -3, backgroundColor: "#000", borderRadius: Neubrutalism.borderRadius },
+  appBarBtnMain: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: Neubrutalism.borderRadius, borderWidth: Neubrutalism.borderWidth, borderColor: "#000", justifyContent: "center", alignItems: "center" },
+  appBarBtnText: { fontSize: 20 },
+
+  statsScroll: { gap: 10, marginBottom: 20, paddingRight: 8 },
+  statItem: { position: "relative", width: 80 },
+  statShadow: { position: "absolute", top: 3, left: 3, right: -3, bottom: -3, backgroundColor: "#000", borderRadius: Neubrutalism.borderRadius },
+  statCard: { borderRadius: Neubrutalism.borderRadius, borderWidth: Neubrutalism.borderWidth, borderColor: "#000", padding: 12, alignItems: "center" },
+  statCount: { fontSize: 22, fontWeight: "900", color: "#000" },
+  statLabel: { fontSize: 10, fontWeight: "700", color: "#000", marginTop: 2 },
+
+  tabsScroll: { gap: 8, marginBottom: 20, paddingRight: 8 },
+  tab: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 99, borderWidth: 1.5, borderColor: "#000", backgroundColor: COLORS.CARD_BACKGROUND },
+  tabText: { fontSize: 13, fontWeight: "700", color: COLORS.TEXT_MAIN },
+  tabTextActive: { fontWeight: "900" },
+
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  sectionLabel: { fontSize: 16, fontWeight: "900", color: COLORS.TEXT_MAIN },
+  sectionCount: { fontSize: 13, color: COLORS.TEXT_SECONDARY, fontWeight: "600" },
+
+  empty: { position: "relative", marginTop: 8 },
+  emptyShadow: { position: "absolute", top: 5, left: 5, right: -5, bottom: -5, backgroundColor: "#000", borderRadius: Neubrutalism.borderRadius },
+  emptyCard: { backgroundColor: COLORS.CARD_BACKGROUND, borderRadius: Neubrutalism.borderRadius, borderWidth: Neubrutalism.borderWidth, borderColor: "#000", padding: 36, alignItems: "center" },
+  emptyIcon: { fontSize: 40, marginBottom: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: "900", color: COLORS.TEXT_MAIN, marginBottom: 6 },
+  emptySub: { fontSize: 14, color: COLORS.TEXT_SECONDARY, fontWeight: "600", textAlign: "center" },
+
+  cardActions: { flexDirection: "row", gap: 10, paddingHorizontal: 4 },
 });
