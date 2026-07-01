@@ -9,6 +9,8 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import React, { useState } from "react";
+import { registerForPushNotificationsAsync, saveTokenToFirestore } from "@/src/services/notificationService";
+import { useTheme } from "@/src/context/ThemeContext";
 import {
   Alert,
   SafeAreaView,
@@ -26,6 +28,7 @@ GoogleSignin.configure({
 });
 
 export default function LoginScreen() {
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +41,14 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Minta izin dan simpan push token
+      const token = await registerForPushNotificationsAsync();
+      if (token && userCredential.user) {
+        await saveTokenToFirestore(userCredential.user.uid, token);
+      }
+
       // Jika berhasil, arahkan ke profile
       router.replace("/(tabs)/profile");
     } catch (error: any) {
@@ -71,7 +81,13 @@ export default function LoginScreen() {
 
       // Buat credential Firebase dan Sign-In
       const googleCredential = GoogleAuthProvider.credential(idToken);
-      await signInWithCredential(auth, googleCredential);
+      const userCredential = await signInWithCredential(auth, googleCredential);
+
+      // Minta izin dan simpan push token
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken && userCredential.user) {
+        await saveTokenToFirestore(userCredential.user.uid, pushToken);
+      }
 
       // Jika berhasil, arahkan ke profile
       router.replace("/(tabs)/profile");
@@ -86,21 +102,21 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Selamat Datang!</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.text }]}>Selamat Datang!</Text>
+          <Text style={[styles.subtitle, { color: colors.text }]}>
             Masuk untuk melihat watchlist anime-mu.
           </Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
             <NeoInput
               placeholder="contoh@email.com"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -109,10 +125,10 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
             <NeoInput
               placeholder="Masukkan password"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -138,7 +154,7 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={() => router.replace("/(tabs)/profile/register")}
             >
-              <Text style={styles.linkText}>
+              <Text style={[styles.linkText, { color: colors.text }]}>
                 Belum punya akun? Daftar di sini
               </Text>
             </TouchableOpacity>

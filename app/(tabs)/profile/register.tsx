@@ -10,6 +10,8 @@ import {
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
+import { registerForPushNotificationsAsync, saveTokenToFirestore } from "@/src/services/notificationService";
+import { useTheme } from "@/src/context/ThemeContext";
 import {
   Alert,
   SafeAreaView,
@@ -27,6 +29,7 @@ GoogleSignin.configure({
 });
 
 export default function RegisterScreen() {
+  const { colors, isDark } = useTheme();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,6 +57,12 @@ export default function RegisterScreen() {
         email: email,
         createdAt: new Date().toISOString(),
       });
+
+      // Minta izin dan simpan push token
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        await saveTokenToFirestore(user.uid, token);
+      }
 
       // Langsung arahkan ke profile karena Firebase Auth otomatis login setelah register
       router.replace("/(tabs)/profile");
@@ -99,6 +108,12 @@ export default function RegisterScreen() {
         { merge: true },
       );
 
+      // Minta izin dan simpan push token
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        await saveTokenToFirestore(user.uid, pushToken);
+      }
+
       router.replace("/(tabs)/profile");
     } catch (error: any) {
       console.error(error);
@@ -111,29 +126,29 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Buat Akun</Text>
-          <Text style={styles.subtitle}>Mulai perjalanan anime kamu!</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Buat Akun</Text>
+          <Text style={[styles.subtitle, { color: colors.text }]}>Mulai perjalanan anime kamu!</Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Username</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Username</Text>
             <NeoInput
               placeholder="Username"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={username}
               onChangeText={setUsername}
             />
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
             <NeoInput
               placeholder="contoh@email.com"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -142,10 +157,10 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
             <NeoInput
               placeholder="Minimal 6 karakter"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -171,7 +186,7 @@ export default function RegisterScreen() {
             <TouchableOpacity
               onPress={() => router.replace("/(tabs)/profile/login")}
             >
-              <Text style={styles.linkText}>
+              <Text style={[styles.linkText, { color: colors.text }]}>
                 Sudah punya akun? Masuk di sini
               </Text>
             </TouchableOpacity>

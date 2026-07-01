@@ -7,6 +7,8 @@ import { collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from 
 import { NeoButton, NeoCard, NeoAnimeCard } from "@/components/NeoKit";
 import { ThemedText } from "@/components/themed-text";
 import { fetchAniList } from "@/src/services/anilist";
+import { useTheme } from "@/src/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const BATCH_QUERY = `
   query GetAnimeBatch($ids: [Int]) {
@@ -53,13 +55,14 @@ interface FirestoreCollectionDoc {
 }
 
 const CATEGORIES = [
-  { id: "Watching",   label: "Watching",   icon: "▶️", color: STATUS_COLORS.ON_AIR },
-  { id: "Completed",  label: "Completed",  icon: "✅", color: STATUS_COLORS.FINISHED },
-  { id: "Planning",   label: "Planning",   icon: "📋", color: "#93C5FD" },
-  { id: "Dropped",    label: "Dropped",    icon: "🗑️", color: STATUS_COLORS.MOVIE },
+  { id: "Watching",   label: "Watching",   icon: "play-circle", color: STATUS_COLORS.ON_AIR },
+  { id: "Completed",  label: "Completed",  icon: "checkmark-circle", color: STATUS_COLORS.FINISHED },
+  { id: "Planning",   label: "Planning",   icon: "list", color: "#93C5FD" },
+  { id: "Dropped",    label: "Dropped",    icon: "trash", color: STATUS_COLORS.MOVIE },
 ];
 
 export default function ManageScreen() {
+  const { colors, isDark } = useTheme();
   const [activeCategory, setActiveCategory] = useState("Watching");
   const [daftarAnime, setDaftarAnime] = useState<FirestoreCollectionDoc[]>([]);
   const [richAnimeData, setRichAnimeData] = useState<Record<string, any>>({});
@@ -113,13 +116,13 @@ export default function ManageScreen() {
 
   if (!user) {
     return (
-      <View style={styles.authWall}>
+      <View style={[styles.authWall, { backgroundColor: colors.background }]}>
         <View style={styles.authCard}>
           <View style={styles.authShadow} />
-          <View style={styles.authCardInner}>
-            <Text style={styles.authIcon}>🎌</Text>
-            <Text style={styles.authTitle}>Koleksi Anime</Text>
-            <Text style={styles.authSub}>Login untuk kelola daftar tontonanmu</Text>
+          <View style={[styles.authCardInner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="flag" size={48} color={colors.text} style={{ marginBottom: 12 }} />
+            <Text style={[styles.authTitle, { color: colors.text }]}>Koleksi Anime</Text>
+            <Text style={[styles.authSub, { color: colors.textMuted }]}>Login untuk kelola daftar tontonanmu</Text>
             <NeoButton title="Masuk / Login" color={STATUS_COLORS.ON_AIR} onPress={() => router.push("/(tabs)/profile/login")} style={{ width: "100%", marginBottom: 10 }} />
             <NeoButton title="Daftar Akun" color={COLORS.PRIMARY} onPress={() => router.push("/(tabs)/profile/register")} style={{ width: "100%" }} />
           </View>
@@ -129,24 +132,24 @@ export default function ManageScreen() {
   }
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.root, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {/* ── App Bar ── */}
       <View style={styles.appBar}>
         <View>
-          <Text style={styles.appBarTitle}>Koleksiku</Text>
-          <Text style={styles.appBarSub}>{daftarAnime.length} anime dalam koleksi</Text>
+          <Text style={[styles.appBarTitle, { color: colors.text }]}>Koleksiku</Text>
+          <Text style={[styles.appBarSub, { color: colors.textMuted }]}>{daftarAnime.length} anime dalam koleksi</Text>
         </View>
         <View style={styles.appBarActions}>
           <TouchableOpacity onPress={() => router.push("/manage/stats")} style={styles.appBarBtn}>
             <View style={styles.appBarBtnShadow} />
             <View style={[styles.appBarBtnMain, { backgroundColor: COLORS.PRIMARY }]}>
-              <Text style={styles.appBarBtnText}>📊</Text>
+              <Ionicons name="stats-chart" size={20} color="#000" />
             </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/manage/favorite")} style={styles.appBarBtn}>
             <View style={styles.appBarBtnShadow} />
             <View style={[styles.appBarBtnMain, { backgroundColor: "#FDE047" }]}>
-              <Text style={styles.appBarBtnText}>⭐</Text>
+              <Ionicons name="star" size={20} color="#000" />
             </View>
           </TouchableOpacity>
         </View>
@@ -174,30 +177,33 @@ export default function ManageScreen() {
           <TouchableOpacity
             key={cat.id}
             onPress={() => setActiveCategory(cat.id)}
-            style={[styles.tab, activeCategory === cat.id && { backgroundColor: activeCat?.color || COLORS.PRIMARY }]}
+            style={[styles.tab, activeCategory === cat.id && { backgroundColor: activeCat?.color || COLORS.PRIMARY }, { borderColor: colors.border, backgroundColor: activeCategory === cat.id ? (activeCat?.color || colors.primary) : colors.card }]}
           >
-            <Text style={[styles.tabText, activeCategory === cat.id && styles.tabTextActive]}>
-              {cat.icon} {cat.label}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name={cat.icon as any} size={14} color={activeCategory === cat.id ? '#000' : colors.text} />
+              <Text style={[styles.tabText, { color: activeCategory === cat.id ? '#000' : colors.text }, activeCategory === cat.id && styles.tabTextActive]}>
+                {cat.label}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
       {/* ── List ── */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionLabel}>Daftar {activeCat?.label}</Text>
-        <Text style={styles.sectionCount}>{filteredAnime.length} anime</Text>
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>Daftar {activeCat?.label}</Text>
+        <Text style={[styles.sectionCount, { color: colors.textMuted }]}>{filteredAnime.length} anime</Text>
       </View>
 
       {isLoading ? (
         <ActivityIndicator size="large" color={COLORS.PRIMARY} style={{ marginTop: 40 }} />
       ) : filteredAnime.length === 0 ? (
         <View style={styles.empty}>
-          <View style={styles.emptyShadow} />
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>📂</Text>
-            <Text style={styles.emptyTitle}>Daftar Kosong</Text>
-            <Text style={styles.emptySub}>Belum ada anime di kategori {activeCat?.label}</Text>
+          <View style={[styles.emptyShadow, { backgroundColor: isDark ? colors.card : '#000' }]} />
+          <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="folder-open" size={40} color={colors.text} style={{ marginBottom: 12 }} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>Daftar Kosong</Text>
+            <Text style={[styles.emptySub, { color: colors.textMuted }]}>Belum ada anime di kategori {activeCat?.label}</Text>
           </View>
         </View>
       ) : (
@@ -225,26 +231,34 @@ export default function ManageScreen() {
                 <NeoAnimeCard
                   anime={fakeAnime}
                   color={idx % 2 === 0 ? COLORS.CARD_BACKGROUND : "#F8F8F8"}
-                  onPress={() => router.push(`/(tabs)/explore/${anime.animeId}`)}
+                  onPress={() => router.push(`/(tabs)/anime/${anime.animeId}`)}
                   footerComponent={
                     <View style={styles.cardActions}>
                       <View style={{ flex: 1 }}>
                         <NeoButton
-                          title="❤️ Favorit"
+                          title=""
                           color="#FDE047"
                           onPress={() => handleUpdateStatus(anime.id, "Favorite")}
-                          textStyle={{ fontSize: 13, paddingVertical: 8 }}
                           style={{ width: '100%' }}
-                        />
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 4, justifyContent: 'center' }}>
+                            <Ionicons name="heart" size={14} color="#000" />
+                            <Text style={{ color: '#000', fontSize: 13, fontWeight: '900' }}>Favorit</Text>
+                          </View>
+                        </NeoButton>
                       </View>
                       <View style={{ flex: 1 }}>
                         <NeoButton
-                          title="✕ Hapus"
+                          title=""
                           color={COLORS.ACCENT}
                           onPress={() => handleHapus(anime.id, anime.title ?? '')}
-                          textStyle={{ fontSize: 13, color: '#fff', paddingVertical: 8 }}
                           style={{ width: '100%' }}
-                        />
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 4, justifyContent: 'center' }}>
+                            <Ionicons name="close" size={14} color="#fff" />
+                            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '900' }}>Hapus</Text>
+                          </View>
+                        </NeoButton>
                       </View>
                     </View>
                   }

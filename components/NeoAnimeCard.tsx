@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { COLORS, STATUS_COLORS, Neubrutalism } from '@/constants/theme';
 import { ThemedText } from './themed-text';
@@ -43,6 +43,10 @@ export interface NeoAnimeCardProps {
   footerComponent?: React.ReactNode;
   /** Teks opsional yang ditampilkan di kanan subheader (contoh: status tayang, waktu tonton) */
   topRightText?: string;
+  /** Callback saat tombol 'Ingatkan Saya' ditekan. Hanya tampil untuk anime RELEASING / NOT_YET_RELEASED. */
+  onNotify?: () => void;
+  /** State subscribe saat ini — true = sudah subscribe */
+  isNotified?: boolean;
 }
 
 const stripHtml = (html?: string) => {
@@ -61,11 +65,14 @@ const formatSource = (source?: string) => {
   return source.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
 };
 
-export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style, footerComponent }: NeoAnimeCardProps) {
+export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style, footerComponent, onNotify, isNotified }: NeoAnimeCardProps) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const titleMain = anime.title.romaji || anime.title.english || "Unknown Title";
   const titleSub = anime.title.english && anime.title.english !== anime.title.romaji ? anime.title.english : null;
+
+  // Anime yang bisa di-subscribe: Sedang atau Akan tayang
+  const isNotifiable = anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED';
   
   const dateStr = anime.startDate?.year ? `${getMonthName(anime.startDate.month)} ${anime.startDate.day ? anime.startDate.day + ', ' : ''}${anime.startDate.year}` : "TBA";
   const epsStr = anime.episodes ? `${anime.episodes} eps` : "? eps";
@@ -117,13 +124,32 @@ export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style,
 
         {/* BODY SECTION (Poster + Details) */}
         <View style={[styles.body, { borderColor: colors.border }]}>
-          {/* Left: Poster */}
+          {/* Left: Poster + Notify button */}
           <View style={[styles.posterContainer, { borderColor: colors.border }]}>
             <Image source={{ uri: anime.coverImage?.large }} style={styles.poster} contentFit="cover" />
             {rank && (
               <View style={[styles.rankBadge, { borderColor: colors.border }]}>
                 <ThemedText style={styles.rankText}>#{rank}</ThemedText>
               </View>
+            )}
+            {/* Notify Me — floating top-right of poster */}
+            {isNotifiable && onNotify && (
+              <TouchableOpacity
+                id={`notify-btn-${anime.id}`}
+                onPress={(e: any) => { e.stopPropagation?.(); onNotify(); }}
+                activeOpacity={0.85}
+                style={[
+                  styles.notifyTopRight,
+                  {
+                    backgroundColor: isNotified ? '#10B981' : 'rgba(0,0,0,0.7)',
+                    borderColor: isNotified ? '#059669' : 'rgba(255,255,255,0.3)',
+                  }
+                ]}
+              >
+                <Text style={{ fontSize: 14 }}>
+                  {isNotified ? '✅' : '🔔'}
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -169,6 +195,8 @@ export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style,
           </View>
         </View>
 
+
+
         {footerComponent && (
           <View style={{ borderTopWidth: 1, borderColor: colors.border, backgroundColor: colors.shadow === '#000000' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', padding: 8 }}>
             {footerComponent}
@@ -184,11 +212,13 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     marginBottom: 16,
+    position: 'relative',
   },
   header: {
     padding: 12,
     borderBottomWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   titleMain: {
     fontSize: 16,
@@ -314,5 +344,18 @@ const styles = StyleSheet.create({
   footerValue: {
     fontSize: 12,
     fontWeight: '900',
+  },
+  notifyTopRight: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+    elevation: 5,
   },
 });

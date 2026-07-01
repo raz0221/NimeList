@@ -2,12 +2,15 @@ import { COLORS, STATUS_COLORS } from "@/constants/theme";
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Linking, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Linking, ScrollView, StyleSheet, View, Text } from "react-native";
 
 import { NeoButton, NeoCard, NeoInput } from "@/components/NeoKit";
 import { ThemedText } from "@/components/themed-text";
+import { useTheme } from "@/src/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ContactScreen() {
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const [keluhan, setKeluhan] = useState("");
   const [history, setHistory] = useState<{ id: string; text: string }[]>([]);
@@ -23,7 +26,7 @@ export default function ContactScreen() {
   };
 
   const openEmail = () => {
-    Linking.openURL("mailto:23050024@gmail.com");
+    Linking.openURL("mailto:23050024@uym.ac.id");
   };
 
   const openInstagram = () => {
@@ -31,17 +34,18 @@ export default function ContactScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <NeoButton
           title={`← ${t("Kembali")}`}
-          color={COLORS.PRIMARY}
+          color={isDark ? colors.primary : COLORS.PRIMARY}
           onPress={() => router.back()}
           style={{ marginBottom: 16, alignSelf: "flex-start" }}
           textStyle={{
             paddingVertical: 8,
             paddingHorizontal: 16,
             fontSize: 14,
+            color: isDark ? "#000" : "#000",
           }}
         />
         <ThemedText type="title">{t("Hubungi Kami")}</ThemedText>
@@ -50,7 +54,7 @@ export default function ContactScreen() {
       <View style={styles.formContainer}>
         <NeoInput
           placeholder="Tulis keluhan atau masukan Anda..."
-          placeholderTextColor={COLORS.TEXT_SECONDARY}
+          placeholderTextColor={colors.textMuted}
           value={keluhan}
           onChangeText={setKeluhan}
           multiline
@@ -62,32 +66,40 @@ export default function ContactScreen() {
 
         <NeoButton
           title="Kirim Pesan"
-          color={COLORS.PRIMARY}
+          color={isDark ? colors.accent : COLORS.PRIMARY}
           onPress={handleKirim}
           style={{ width: "100%", marginBottom: 24 }}
         />
 
         <View style={styles.socialButtons}>
           <NeoButton
-            title="📧 Kirim via Email"
+            title=""
             color="#fff"
             onPress={openEmail}
             style={{ flex: 1 }}
-            textStyle={{ color: "#000", fontSize: 14 }}
-          />
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 12, justifyContent: 'center' }}>
+              <Ionicons name="mail" size={18} color="#000" />
+              <Text style={{ color: '#000', fontSize: 13, fontWeight: '900' }}>Email</Text>
+            </View>
+          </NeoButton>
           <NeoButton
-            title="📸 Instagram"
+            title=""
             color="#FDE047"
             onPress={openInstagram}
             style={{ flex: 1 }}
-            textStyle={{ color: "#000", fontSize: 14 }}
-          />
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 12, justifyContent: 'center' }}>
+              <Ionicons name="logo-instagram" size={18} color="#000" />
+              <Text style={{ color: '#000', fontSize: 13, fontWeight: '900' }}>Instagram</Text>
+            </View>
+          </NeoButton>
         </View>
       </View>
 
       {history.length > 0 && (
         <View style={styles.historySection}>
-          <ThemedText style={styles.historyTitle}>Riwayat Tiket:</ThemedText>
+          <ThemedText style={[styles.historyTitle, { color: colors.text }]}>Riwayat Tiket:</ThemedText>
           {history.map((item) => (
             <NeoCard
               key={item.id}

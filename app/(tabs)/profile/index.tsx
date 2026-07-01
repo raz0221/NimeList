@@ -5,18 +5,19 @@ import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { auth, db } from "@/src/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where, getDocs } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { NeoCard } from "@/components/NeoKit";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/src/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const MENU_ITEMS = [
-  { icon: "✏️", label: "Edit Profil",          route: "/(tabs)/profile/edit",         color: COLORS.PRIMARY },
-  { icon: "🏆", label: "Pencapaian & Gelar",   route: "/(tabs)/profile/achievements", color: "#FDE047" },
-  { icon: "⚙️", label: "Pengaturan Aplikasi",  route: "/(tabs)/profile/settings",     color: COLORS.ACCENT },
-  { icon: "ℹ️", label: "Tentang Aplikasi",     route: "/(tabs)/profile/about",        color: STATUS_COLORS.ON_AIR },
-  { icon: "📞", label: "Hubungi Kami",         route: "/(tabs)/profile/contact",      color: "#93C5FD" },
+  { icon: "create", label: "Edit Profil",          route: "/(tabs)/profile/edit",         color: COLORS.PRIMARY },
+  { icon: "trophy", label: "Pencapaian & Gelar",   route: "/(tabs)/profile/achievements", color: "#FDE047" },
+  { icon: "settings", label: "Pengaturan Aplikasi",  route: "/(tabs)/profile/settings",     color: COLORS.ACCENT },
+  { icon: "information-circle", label: "Tentang Aplikasi",     route: "/(tabs)/profile/about",        color: STATUS_COLORS.ON_AIR },
+  { icon: "call", label: "Hubungi Kami",         route: "/(tabs)/profile/contact",      color: "#93C5FD" },
 ];
 
 export default function ProfileScreen() {
@@ -32,14 +33,49 @@ export default function ProfileScreen() {
     return () => unsubAuth();
   }, []);
 
+  const [isValidTitle, setIsValidTitle] = useState(false);
+
   useEffect(() => {
     if (!user) {
       setUserData(null);
+      setIsValidTitle(false);
       return;
     }
-    const unsub = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+    const unsub = onSnapshot(doc(db, "users", user.uid), async (docSnap) => {
       if (docSnap.exists()) {
-        setUserData(docSnap.data());
+        const data = docSnap.data();
+        setUserData(data);
+
+        // Validasi Badge
+        if (data.equippedTitle) {
+          try {
+            const completedQ = query(collection(db, "user_collections"), where("userId", "==", user.uid), where("status", "==", "Completed"));
+            const completedSnap = await getDocs(completedQ);
+            const completedCount = completedSnap.size;
+
+            const watchlistQ = query(collection(db, "user_collections"), where("userId", "==", user.uid));
+            const watchlistSnap = await getDocs(watchlistQ);
+            const watchlistTotal = watchlistSnap.size;
+
+            const reviewQ = query(collection(db, "reviews"), where("userId", "==", user.uid));
+            const reviewSnap = await getDocs(reviewQ);
+            const reviewTotal = reviewSnap.size;
+
+            let unlocked = false;
+            const title = data.equippedTitle;
+            if (title === "Newbie Otaku" && completedCount >= 1) unlocked = true;
+            if (title === "Binge Watcher" && completedCount >= 5) unlocked = true;
+            if (title === "Kolektor Handal" && watchlistTotal >= 10) unlocked = true;
+            if (title === "Kritikus Anime" && reviewTotal >= 5) unlocked = true;
+            if (title === "Sang Pengamat" && watchlistTotal >= 30) unlocked = true;
+
+            setIsValidTitle(unlocked);
+          } catch (e) {
+            setIsValidTitle(false);
+          }
+        } else {
+          setIsValidTitle(false);
+        }
       }
     });
     return () => unsub();
@@ -67,7 +103,7 @@ export default function ProfileScreen() {
           <View style={[styles.heroShadow, { backgroundColor: colors.shadow }]} />
           <View style={[styles.heroInner, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={{ alignItems: "center", paddingVertical: 32 }}>
-              <Text style={{ fontSize: 56, marginBottom: 12 }}>👤</Text>
+              <Ionicons name="person-circle" size={72} color={colors.text} style={{ marginBottom: 12 }} />
               <ThemedText style={styles.heroName}>Belum Masuk</ThemedText>
               <ThemedText style={[styles.heroEmail, { color: colors.textMuted }]}>Login untuk akses fitur lengkap</ThemedText>
               <View style={{ gap: 10, width: "100%", marginTop: 20 }}>
@@ -100,9 +136,12 @@ export default function ProfileScreen() {
               </View>
               <View style={{ flex: 1, justifyContent: "center" }}>
                 <ThemedText style={styles.heroName}>{userData?.displayName || user.displayName || "Pengguna"}</ThemedText>
-                {userData?.equippedTitle ? (
+                {userData?.equippedTitle && isValidTitle ? (
                   <View style={styles.titleBadge}>
-                    <Text style={styles.titleBadgeText}>🎖️ {userData.equippedTitle}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name="medal" size={14} color="#000" />
+                      <Text style={styles.titleBadgeText}>{userData.equippedTitle}</Text>
+                    </View>
                   </View>
                 ) : (
                   <ThemedText style={[styles.heroEmail, { color: colors.textMuted }]}>{user.email}</ThemedText>
@@ -127,7 +166,7 @@ export default function ProfileScreen() {
         {MENU_ITEMS.map((item, idx) => (
           <TouchableOpacity key={item.route} onPress={() => router.push(item.route as any)} style={[styles.menuItem, { borderBottomColor: isDark ? '#333' : '#E5E7EB' }]}>
             <View style={[styles.menuIconBox, { backgroundColor: isDark ? colors.card : item.color, borderColor: isDark ? item.color : '#000' }]}>
-              <Text style={styles.menuIcon}>{item.icon}</Text>
+              <Ionicons name={item.icon as any} size={18} color={isDark ? colors.text : '#000'} />
             </View>
             <ThemedText style={styles.menuLabel}>{item.label}</ThemedText>
             <ThemedText style={[styles.menuChevron, { color: colors.textMuted }]}>›</ThemedText>
@@ -140,7 +179,10 @@ export default function ProfileScreen() {
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
           <View style={styles.logoutShadow} />
           <View style={styles.logoutMain}>
-            <Text style={styles.logoutText}>🚪 Keluar dari Akun</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="log-out" size={20} color="#fff" />
+              <Text style={styles.logoutText}>Keluar dari Akun</Text>
+            </View>
           </View>
         </TouchableOpacity>
       )}

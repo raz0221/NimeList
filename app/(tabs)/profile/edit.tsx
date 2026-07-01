@@ -1,5 +1,5 @@
 import { COLORS, STATUS_COLORS, Neubrutalism } from "@/constants/theme";
-import { StyleSheet, View, ScrollView, Alert } from "react-native";
+import { StyleSheet, View, ScrollView, Alert, Text } from "react-native";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -10,8 +10,11 @@ import { auth, db } from "@/src/lib/firebase";
 import { ThemedText } from "@/components/themed-text";
 import { NeoButton, NeoInput } from "@/components/NeoKit";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@/src/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function EditProfileScreen() {
+  const { colors, isDark } = useTheme();
   const user = auth.currentUser;
   const { t } = useTranslation();
   
@@ -81,54 +84,59 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <NeoButton
           title={`← ${t("Kembali")}`}
-          color={COLORS.PRIMARY}
+          color={isDark ? colors.primary : COLORS.PRIMARY}
           onPress={() => router.back()}
           style={{ marginBottom: 16, alignSelf: 'flex-start' }}
-          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14 }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14, color: isDark ? '#000' : '#000' }}
         />
         <ThemedText type="title">{t("Edit Profil")}</ThemedText>
       </View>
 
-      <View style={styles.formSection}>
+      <View style={[styles.formSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {/* Avatar Customization */}
         <View style={styles.avatarSection}>
-          <View style={styles.avatarWrap}>
+          <View style={[styles.avatarWrap, { borderColor: colors.border }]}>
             <Image
               source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${avatarSeed}` }}
               style={styles.avatar}
             />
           </View>
           <NeoButton 
-            title="🎲 Acak Avatar" 
-            color={COLORS.ACCENT} 
+            title=""
+            color={isDark ? colors.accent : COLORS.ACCENT} 
             onPress={generateRandomSeed} 
-            textStyle={{ color: '#fff', fontSize: 13, paddingVertical: 10, paddingHorizontal: 16 }}
-          />
+            textStyle={{ color: '#000', fontSize: 13, paddingVertical: 10, paddingHorizontal: 16 }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 16 }}>
+              <Ionicons name="dice" size={18} color="#000" />
+              <Text style={{ color: '#000', fontWeight: '900' }}>Acak Avatar</Text>
+            </View>
+          </NeoButton>
         </View>
 
         {/* Display Name */}
         <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>{t("Nama Tampilan")}</ThemedText>
+          <ThemedText style={[styles.label, { color: colors.text }]}>{t("Nama Tampilan")}</ThemedText>
           <NeoInput
             value={displayName}
             onChangeText={setDisplayName}
             placeholder="Masukkan nama tampilan..."
-            placeholderTextColor={COLORS.TEXT_SECONDARY}
+            placeholderTextColor={colors.textMuted}
           />
         </View>
 
         {/* Bio */}
         <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>{t("Bio (Tentang Kamu)")}</ThemedText>
+          <ThemedText style={[styles.label, { color: colors.text }]}>{t("Bio (Tentang Kamu)")}</ThemedText>
           <NeoInput
             value={bio}
             onChangeText={setBio}
             placeholder="Tulis sesuatu tentang dirimu..."
-            placeholderTextColor={COLORS.TEXT_SECONDARY}
+            placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -139,11 +147,18 @@ export default function EditProfileScreen() {
         </View>
 
         <NeoButton 
-          title={isSaving ? "Menyimpan..." : "💾 Simpan Perubahan"} 
+          title=""
           color={STATUS_COLORS.ON_AIR} 
           onPress={handleSave} 
           style={{ marginTop: 24 }}
-        />
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 16, justifyContent: 'center' }}>
+            <Ionicons name={isSaving ? 'hourglass' : 'save'} size={18} color="#000" />
+            <Text style={{ fontWeight: '900', fontSize: 15, color: '#000' }}>
+              {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
+            </Text>
+          </View>
+        </NeoButton>
       </View>
       <View style={{ height: 40 }} />
     </ScrollView>

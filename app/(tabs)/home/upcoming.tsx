@@ -73,7 +73,7 @@ export default function UpcomingScreen() {
           color={isDark ? colors.primary : COLORS.PRIMARY}
           onPress={() => router.back()}
           style={{ marginBottom: 16, alignSelf: 'flex-start' }}
-          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14, color: isDark ? '#000' : COLORS.BUTTON_TEXT_LIGHT }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14}}
         />
         <ThemedText type="title">Segera Tayang</ThemedText>
         <ThemedText style={[styles.subtitle, { color: colors.textMuted }]}>Anime yang ditunggu-tunggu!</ThemedText>
@@ -88,7 +88,7 @@ export default function UpcomingScreen() {
               key={anime.id}
               anime={anime}
               rank={idx + 1}
-              onPress={() => router.push(`/explore/${anime.id}`)}
+              onPress={() => router.push(`/anime/${anime.id}`)}
             />
           ))}
         </View>

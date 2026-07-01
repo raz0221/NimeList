@@ -1,5 +1,5 @@
 import { COLORS, STATUS_COLORS } from "@/constants/theme";
-import { StyleSheet, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { StyleSheet, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Text } from "react-native";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
 import { collection, query, where, onSnapshot, updateDoc, doc } from "firebase/firestore";
@@ -8,6 +8,8 @@ import { auth, db } from "@/src/lib/firebase";
 import { ThemedText } from "@/components/themed-text";
 import { NeoButton, NeoCard, NeoAnimeCard } from "@/components/NeoKit";
 import { fetchAniList } from "@/src/services/anilist";
+import { useTheme } from "@/src/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const BATCH_QUERY = `
   query GetAnimeBatch($ids: [Int]) {
@@ -54,6 +56,7 @@ interface FirestoreCollectionDoc {
 }
 
 export default function FavoriteScreen() {
+  const { colors, isDark } = useTheme();
   const [favorites, setFavorites] = useState<FirestoreCollectionDoc[]>([]);
   const [richAnimeData, setRichAnimeData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -110,8 +113,8 @@ export default function FavoriteScreen() {
 
   if (!user) {
     return (
-      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-        <ThemedText style={{ fontWeight: "bold", fontSize: 16, marginBottom: 20 }}>
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center", backgroundColor: colors.background }]}>
+        <ThemedText style={{ fontWeight: "bold", fontSize: 16, marginBottom: 20, color: colors.text }}>
           Silakan login untuk melihat Koleksi Favorit.
         </ThemedText>
         <NeoButton
@@ -124,26 +127,29 @@ export default function FavoriteScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <NeoButton
           title="← Kembali"
-          color={COLORS.PRIMARY}
+          color={isDark ? colors.primary : COLORS.PRIMARY}
           onPress={() => router.back()}
           style={{ marginBottom: 16, alignSelf: 'flex-start' }}
-          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14 }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14}}
         />
-        <ThemedText type="title">Hall of Fame ⭐</ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <ThemedText type="title">Hall of Fame</ThemedText>
+          <Ionicons name="star" size={26} color="#FDE047" />
+        </View>
         <ThemedText style={styles.subtitle}>Anime favoritmu yang paling berkesan</ThemedText>
       </View>
 
       {isLoading ? (
         <ActivityIndicator size="large" color={COLORS.PRIMARY} style={{ marginTop: 40 }} />
       ) : favorites.length === 0 ? (
-        <NeoCard color={COLORS.CARD_BACKGROUND} contentStyle={styles.emptyState}>
-          <ThemedText style={styles.emptyIcon}>🌟</ThemedText>
-          <ThemedText style={styles.emptyText}>Belum ada anime favorit.</ThemedText>
-          <ThemedText style={styles.emptyHint}>
+        <NeoCard color={colors.card} contentStyle={styles.emptyState}>
+          <Ionicons name="star" size={48} color={colors.text} style={{ marginBottom: 12 }} />
+          <ThemedText style={[styles.emptyText, { color: colors.text }]}>Belum ada anime favorit.</ThemedText>
+          <ThemedText style={[styles.emptyHint, { color: colors.textMuted }]}>
             Buka Manajemen Tontonan dan tandai anime favoritmu!
           </ThemedText>
           <NeoButton
@@ -179,15 +185,19 @@ export default function FavoriteScreen() {
                   anime={fakeAnime}
                   color={TILE_COLORS[idx % TILE_COLORS.length]}
                   style={{ marginBottom: 12 }}
-                  onPress={() => router.push(`/(tabs)/explore/${anime.animeId || anime.id}`)}
+                  onPress={() => router.push(`/(tabs)/anime/${anime.animeId || anime.id}`)}
                 />
                 <NeoButton
-                  title="✕ Hapus dari Favorit"
-                  color={COLORS.CARD_BACKGROUND}
+                  title=""
+                  color={colors.card}
                   onPress={() => handleRemoveFavorite(anime.id, anime.title ?? '')}
-                  textStyle={{ color: COLORS.ACCENT, fontSize: 13, paddingVertical: 12, paddingHorizontal: 18 }}
-                  style={{ marginBottom: 24 }}
-                />
+                  style={{ marginBottom: 24, borderColor: colors.border }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 18, justifyContent: 'center' }}>
+                    <Ionicons name="close" size={14} color={COLORS.ACCENT} />
+                    <Text style={{ color: COLORS.ACCENT, fontSize: 13, fontWeight: '900' }}>Hapus dari Favorit</Text>
+                  </View>
+                </NeoButton>
               </View>
             )
           })}
@@ -199,7 +209,7 @@ export default function FavoriteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: COLORS.BACKGROUND, padding: 20 },
+  container:    { flex: 1, padding: 20 },
   header:       { marginBottom: 24, marginTop: 40 },
   subtitle:     { color: COLORS.TEXT_SECONDARY, marginTop: 8, fontWeight: "bold" },
   emptyState:   { padding: 36, alignItems: "center" },

@@ -62,18 +62,15 @@ export default function RootLayout() {
   useEffect(() => {
     if (!isAuthReady) return;
 
-    // Definisikan rute mana saja yang harus login terlebih dahulu
-    // Contoh: semua halaman edit profil, settings, pencapaian.
-    // Jika Anda ingin seluruh tab profil dikunci, Anda bisa tambahkan 'profile' 
-    // tapi ingat 'profile/login' dan 'profile/register' TIDAK boleh dikunci!
-    const inProtectedRoute = 
-      segments.includes('edit') || 
-      segments.includes('settings') || 
-      segments.includes('achievements');
+    // Rute autentikasi (login / register)
+    const isAuthRoute = segments.includes('login') || segments.includes('register');
 
-    if (!user && inProtectedRoute) {
-      // User mencoba mengakses rute private namun belum login, lempar ke login
+    if (!user && !isAuthRoute) {
+      // Belum login -> Paksa ke login
       router.replace('/(tabs)/profile/login');
+    } else if (user && isAuthRoute) {
+      // Sudah login tapi di halaman login -> Arahkan ke home
+      router.replace('/(tabs)/home');
     }
   }, [user, segments, isAuthReady]);
 
@@ -92,7 +89,8 @@ export default function RootLayout() {
       <ThemeWrapper>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          <Stack.Screen name="info" options={{ headerShown: false }} />
+          <Stack.Screen name="anime" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeWrapper>

@@ -31,9 +31,11 @@ export function NeoButton({
   color, 
   children 
 }: NeoButtonProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [isPressed, setIsPressed] = useState(false);
-  const buttonColor = color || colors.primary;
+  const buttonColor = isDark ? colors.card : (color || colors.primary);
+  const borderColor = isDark ? colors.border : '#000';
+  const textColor = isDark ? colors.text : '#000';
 
   return (
     <TouchableOpacity
@@ -48,13 +50,13 @@ export function NeoButton({
         styles.mainLayer,
         { 
           backgroundColor: buttonColor, 
-          borderColor: colors.border,
+          borderColor: borderColor,
           borderRadius: Neubrutalism.borderRadius,
           borderWidth: Neubrutalism.borderWidth,
           transform: [{ translateX: isPressed ? 4 : 0 }, { translateY: isPressed ? 4 : 0 }]
         }
       ]}>
-        {children ? children : <Text style={[styles.btnText, { color: colors.text }, textStyle]}>{title}</Text>}
+        {children ? children : <Text style={[styles.btnText, { color: textColor }, textStyle]}>{title}</Text>}
       </View>
     </TouchableOpacity>
   );

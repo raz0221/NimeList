@@ -76,8 +76,7 @@ const idTranslation = {
   "Nama Tampilan": "Nama Tampilan",
   "Bio (Tentang Kamu)": "Bio (Tentang Kamu)",
   "Hubungi Kami": "Hubungi Kami",
-  "Tentang Aplikasi": "Tentang Aplikasi",
-  "Pencapaian & Gelar": "Pencapaian & Gelar"
+  "Tentang Aplikasi": "Tentang Aplikasi"
 };
 
 const enTranslation = {

@@ -8,6 +8,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { fetchAniList } from "@/src/services/anilist";
 import { NeoButton, NeoCard, NeoAnimeCard } from "@/components/NeoKit";
+import { useTheme } from "@/src/context/ThemeContext";
 
 const RECOMMENDATIONS_QUERY = `
   query GetRecommendations {
@@ -46,6 +47,7 @@ const RECOMMENDATIONS_QUERY = `
 `;
 
 export default function RecommendationsScreen() {
+  const { colors, isDark } = useTheme();
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,11 +66,11 @@ export default function RecommendationsScreen() {
   }, []);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <ThemedView style={styles.header}>
         <NeoButton
           title="← Kembali"
-          color={COLORS.PRIMARY}
+          color={isDark ? colors.card : COLORS.PRIMARY}
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -76,8 +78,8 @@ export default function RecommendationsScreen() {
               router.push('/(tabs)/explore');
             }
           }}
-          style={{ marginBottom: 16, alignSelf: 'flex-start' }}
-          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14 }}
+          style={{ marginBottom: 16, alignSelf: 'flex-start', borderColor: isDark ? colors.border : '#000' }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14}}
         />
         <ThemedText type="title">Rekomendasi Untukmu</ThemedText>
         <ThemedText style={styles.subtitle}>Pilihan spesial yang mungkin kamu suka</ThemedText>
@@ -100,7 +102,7 @@ export default function RecommendationsScreen() {
                 key={anime.id}
                 anime={anime}
                 color={color}
-                onPress={() => router.push(`/explore/${anime.id}`)}
+                onPress={() => router.push(`/anime/${anime.id}`)}
               />
             )
           })}
@@ -112,7 +114,7 @@ export default function RecommendationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.BACKGROUND, padding: 20 },
+  container: { flex: 1, padding: 20 },
   header: { marginBottom: 24, marginTop: 40, backgroundColor: "transparent" },
   subtitle: { color: COLORS.TEXT_SECONDARY, marginTop: 8, fontWeight: "bold" },
   

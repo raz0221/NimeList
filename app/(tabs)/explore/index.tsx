@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { NeoButton, NeoCard, NeoInput, NeoAnimeCard } from "@/components/NeoKit";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from '@/src/context/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
 
 const SEARCH_QUERY = `
   query SearchAnime($search: String, $genre: [String], $format: [MediaFormat], $sort: [MediaSort]) { 
@@ -49,15 +50,15 @@ const GENRE_COLORS = [
 
 const FORMATS = ["TV", "MOVIE", "OVA", "ONA", "SPECIAL"];
 const SORTS = [
-  { label: "🔥 Trending", value: "TRENDING_DESC" },
-  { label: "⭐ Top Score", value: "SCORE_DESC" },
-  { label: "📅 Terbaru", value: "START_DATE_DESC" },
+  { icon: 'flame' as const,    label: "Trending",  value: "TRENDING_DESC" },
+  { icon: 'star' as const,     label: "Top Score", value: "SCORE_DESC" },
+  { icon: 'calendar' as const, label: "Terbaru",   value: "START_DATE_DESC" },
 ];
 
 const NAV_ITEMS = [
-  { icon: "🎭", label: "Genre", sub: "Semua Kategori", color: THEME_COLORS.secondary, action: "genre" },
-  { icon: "🌟", label: "Rekomendasi", sub: "Anime spesial", color: THEME_COLORS.cyan, route: "/explore/recommendations" },
-  { icon: "🎬", label: "Anime Movie", sub: "Film layar lebar", color: THEME_COLORS.primary, route: "/explore/movies" },
+  { icon: "color-palette", label: "Genre", sub: "Semua Kategori", color: THEME_COLORS.secondary, action: "genre" },
+  { icon: "star", label: "Rekomendasi", sub: "Anime spesial", color: THEME_COLORS.cyan, route: "/explore/recommendations" },
+  { icon: "film", label: "Anime Movie", sub: "Film layar lebar", color: THEME_COLORS.primary, route: "/explore/movies" },
 ];
 
 export default function ExploreScreen() {
@@ -113,7 +114,7 @@ export default function ExploreScreen() {
       <View style={styles.appBar}>
         <View>
           <ThemedText style={styles.appBarTitle}>Explore</ThemedText>
-          <ThemedText style={[styles.appBarSub, { color: colors.textMuted }]}>Temukan anime favoritmu 🔎</ThemedText>
+          <ThemedText style={[styles.appBarSub, { color: colors.textMuted }]}>Temukan anime favoritmu</ThemedText>
         </View>
       </View>
 
@@ -135,14 +136,14 @@ export default function ExploreScreen() {
           <TouchableOpacity onPress={handleSearch} style={styles.iconBtn}>
             <View style={[styles.iconBtnShadow, { backgroundColor: isDark ? COLORS.PRIMARY : '#000' }]} />
             <View style={[styles.iconBtnMain, { backgroundColor: isDark ? colors.card : COLORS.PRIMARY, borderColor: isDark ? COLORS.PRIMARY : '#000' }]}>
-              <Text style={styles.iconBtnText}>🔍</Text>
+              <Ionicons name="search" size={20} color={isDark ? colors.text : '#000'} />
             </View>
           </TouchableOpacity>
           {/* Filter Button */}
           <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.iconBtn}>
             <View style={[styles.iconBtnShadow, { backgroundColor: isDark ? (showFilters ? COLORS.ACCENT : colors.border) : '#000' }]} />
             <View style={[styles.iconBtnMain, { backgroundColor: isDark ? colors.card : (showFilters ? COLORS.ACCENT : COLORS.CARD_BACKGROUND), borderColor: isDark ? (showFilters ? COLORS.ACCENT : colors.border) : '#000' }]}>
-              <Text style={styles.iconBtnText}>⚙️</Text>
+              <Ionicons name="options" size={20} color={isDark ? (showFilters ? '#000' : colors.text) : '#000'} />
               {activeFilterCount > 0 && (
                 <View style={styles.filterBadge}>
                   <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
@@ -157,7 +158,10 @@ export default function ExploreScreen() {
           <View style={[styles.filterPanel, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.shadow }]}>
             {/* Genre */}
             <View style={styles.filterSection}>
-              <ThemedText style={styles.filterLabel}>🎭 {t("Genre")}</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                <Ionicons name="color-palette" size={16} color={colors.text} />
+                <ThemedText style={[styles.filterLabel, { marginBottom: 0, color: colors.text }]}>{t("Genre")}</ThemedText>
+              </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
                 <TouchableOpacity
                   onPress={() => setFilterGenre(null)}
@@ -179,7 +183,10 @@ export default function ExploreScreen() {
 
             {/* Format */}
             <View style={styles.filterSection}>
-              <ThemedText style={styles.filterLabel}>📺 {t("Format")}</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                <Ionicons name="tv" size={16} color={colors.text} />
+                <ThemedText style={[styles.filterLabel, { marginBottom: 0, color: colors.text }]}>{t("Format")}</ThemedText>
+              </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
                 <TouchableOpacity
                   onPress={() => setFilterFormat(null)}
@@ -201,7 +208,10 @@ export default function ExploreScreen() {
 
             {/* Sort */}
             <View style={styles.filterSection}>
-              <ThemedText style={styles.filterLabel}>📊 {t("Urutkan")}</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                <Ionicons name="bar-chart" size={16} color={colors.text} />
+                <ThemedText style={[styles.filterLabel, { marginBottom: 0, color: colors.text }]}>{t("Urutkan")}</ThemedText>
+              </View>
               <View style={styles.filterScroll}>
                 {SORTS.map(s => (
                   <TouchableOpacity
@@ -209,7 +219,10 @@ export default function ExploreScreen() {
                     onPress={() => setFilterSort(s.value)}
                     style={[styles.filterChip, { backgroundColor: filterSort === s.value ? (isDark ? colors.primary : STATUS_COLORS.ON_AIR) : colors.card, borderColor: filterSort === s.value ? (isDark ? colors.primary : '#000') : colors.border }]}
                   >
-                    <ThemedText style={[styles.filterChipText, { color: filterSort === s.value ? '#000' : colors.text }]}>{s.label}</ThemedText>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name={s.icon} size={12} color={filterSort === s.value ? '#000' : colors.text} />
+                      <ThemedText style={[styles.filterChipText, { color: filterSort === s.value ? '#000' : colors.text }]}>{s.label}</ThemedText>
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -219,7 +232,10 @@ export default function ExploreScreen() {
               onPress={handleSearch}
               style={[styles.applyBtn, { backgroundColor: isDark ? colors.primary : COLORS.PRIMARY, borderColor: isDark ? colors.primary : '#000' }]}
             >
-              <Text style={styles.applyBtnText}>✓ {t("Terapkan Filter")}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="checkmark" size={18} color="#000" />
+                <Text style={styles.applyBtnText}>{t("Terapkan Filter")}</Text>
+              </View>
             </TouchableOpacity>
           </View>
         )}
@@ -231,7 +247,10 @@ export default function ExploreScreen() {
           <View style={styles.resultsHeader}>
             <ThemedText style={styles.sectionTitle}>{t("Hasil Pencarian")}</ThemedText>
             <TouchableOpacity onPress={handleClear} style={[styles.clearBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <ThemedText style={styles.clearBtnText}>✕ Reset</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="close" size={14} color={colors.text} />
+                <ThemedText style={[styles.clearBtnText, { color: colors.text }]}>Reset</ThemedText>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -255,7 +274,7 @@ export default function ExploreScreen() {
                     key={anime.id}
                     anime={anime}
                     color={color}
-                    onPress={() => router.push(`/explore/${anime.id}`)}
+                    onPress={() => router.push(`/anime/${anime.id}`)}
                   />
                 );
               })}
@@ -273,7 +292,7 @@ export default function ExploreScreen() {
                 <View style={[styles.navCardShadow, { backgroundColor: isDark ? THEME_COLORS.secondary : '#000' }]} />
                 <View style={[styles.navCard, { backgroundColor: isDark ? colors.card : THEME_COLORS.secondary, borderColor: isDark ? THEME_COLORS.secondary : '#000', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 }]}>
                   <View>
-                    <Text style={styles.navCardIcon}>🎭</Text>
+                    <Ionicons name="color-palette" size={24} color={isDark ? colors.text : '#000'} style={{ marginBottom: 4 }} />
                     <ThemedText style={[styles.navCardLabel, { color: isDark ? '#fff' : '#000' }]}>Genre</ThemedText>
                     <ThemedText style={[styles.navCardSub, { color: isDark ? '#fff' : COLORS.TEXT_SECONDARY }]}>Semua Kategori</ThemedText>
                   </View>
@@ -292,7 +311,7 @@ export default function ExploreScreen() {
                 <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push('/explore/recommendations')}>
                   <View style={[styles.navCardShadow, { backgroundColor: isDark ? THEME_COLORS.cyan : '#000' }]} />
                   <View style={[styles.navCard, { backgroundColor: isDark ? colors.card : THEME_COLORS.cyan, borderColor: isDark ? THEME_COLORS.cyan : '#000' }]}>
-                    <Text style={styles.navCardIcon}>🌟</Text>
+                    <Ionicons name="star" size={24} color={isDark ? colors.text : '#000'} style={{ marginBottom: 4 }} />
                     <ThemedText style={[styles.navCardLabel, { color: isDark ? '#fff' : '#000' }]}>Rekomendasi</ThemedText>
                     <ThemedText style={[styles.navCardSub, { color: isDark ? '#fff' : COLORS.TEXT_SECONDARY }]}>Anime spesial</ThemedText>
                   </View>
@@ -300,7 +319,7 @@ export default function ExploreScreen() {
                 <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push('/explore/movies')}>
                   <View style={[styles.navCardShadow, { backgroundColor: isDark ? THEME_COLORS.primary : '#000' }]} />
                   <View style={[styles.navCard, { backgroundColor: isDark ? colors.card : THEME_COLORS.primary, borderColor: isDark ? THEME_COLORS.primary : '#000' }]}>
-                    <Text style={styles.navCardIcon}>🎬</Text>
+                    <Ionicons name="film" size={24} color={isDark ? colors.text : '#000'} style={{ marginBottom: 4 }} />
                     <ThemedText style={[styles.navCardLabel, { color: isDark ? '#fff' : '#000' }]}>Anime Movie</ThemedText>
                     <ThemedText style={[styles.navCardSub, { color: isDark ? '#fff' : COLORS.TEXT_SECONDARY }]}>Film layar lebar</ThemedText>
                   </View>
@@ -319,9 +338,12 @@ export default function ExploreScreen() {
           <Pressable style={[styles.modalSheet, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={() => {}}>
             <View style={[styles.modalHandle, { backgroundColor: isDark ? '#4B5563' : '#ccc' }]} />
             <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>🎭 Semua Genre</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="color-palette" size={24} color={colors.text} />
+                <ThemedText style={styles.modalTitle}>Semua Genre</ThemedText>
+              </View>
               <TouchableOpacity onPress={() => setShowGenreModal(false)} style={[styles.modalCloseBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <ThemedText style={styles.modalCloseText}>✕</ThemedText>
+                <Ionicons name="close" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalGrid}>
@@ -329,13 +351,13 @@ export default function ExploreScreen() {
                 <View key={genre} style={{ width: '48%' }}>
                   <NeoButton
                     title={genre}
-                    color={GENRE_COLORS[idx % GENRE_COLORS.length]}
+                    color={isDark ? colors.card : GENRE_COLORS[idx % GENRE_COLORS.length]}
                     onPress={() => {
                       setShowGenreModal(false);
                       router.push(`/explore/genre/${genre}`);
                     }}
-                    style={{ width: '100%' }}
-                    textStyle={{ fontSize: 13, paddingVertical: 12, paddingHorizontal: 12 }}
+                    style={{ width: '100%', borderColor: isDark ? GENRE_COLORS[idx % GENRE_COLORS.length] : '#000' }}
+                    textStyle={{ fontSize: 13, paddingVertical: 12, paddingHorizontal: 12, color: isDark ? GENRE_COLORS[idx % GENRE_COLORS.length] : '#000' }}
                   />
                 </View>
               ))}

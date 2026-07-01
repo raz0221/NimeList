@@ -100,7 +100,7 @@ export default function TopAiringScreen() {
               anime={anime}
               rank={idx + 1}
               topRightText="Sedang Tayang"
-              onPress={() => router.push(`/explore/${anime.id}`)}
+              onPress={() => router.push(`/anime/${anime.id}`)}
             />
           ))}
         </View>

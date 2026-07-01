@@ -1,16 +1,18 @@
 import { COLORS } from "@/constants/theme";
-import { StyleSheet, View, ScrollView, ActivityIndicator } from "react-native";
+import { StyleSheet, View, ScrollView, ActivityIndicator, Text } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import { ThemedText } from "@/components/themed-text";
 import { fetchAniList } from "@/src/services/anilist";
 import { NeoButton, NeoAnimeCard } from "@/components/NeoKit";
 import { STATUS_COLORS, Neubrutalism } from "@/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const SORTS = [
-  { label: "🔥 Trending", value: "TRENDING_DESC" },
-  { label: "⭐ Top Score", value: "SCORE_DESC" },
-  { label: "📅 Terbaru", value: "START_DATE_DESC" },
+  { icon: 'flame' as const,  label: "Trending",   value: "TRENDING_DESC" },
+  { icon: 'star' as const,   label: "Top Score",  value: "SCORE_DESC" },
+  { icon: 'calendar' as const, label: "Terbaru",  value: "START_DATE_DESC" },
 ];
 
 const GENRE_QUERY = `
@@ -52,6 +54,7 @@ const GENRE_QUERY = `
 export default function GenreDetailScreen() {
   const { name } = useLocalSearchParams();
   const genreName = typeof name === 'string' ? name : 'Anime';
+  const { colors, isDark } = useTheme();
   
   const [animeList, setAnimeList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,7 +76,7 @@ export default function GenreDetailScreen() {
   }, [genreName, sort]);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <NeoButton
           title="← Kembali"
@@ -91,11 +94,16 @@ export default function GenreDetailScreen() {
           {SORTS.map(s => (
             <NeoButton
               key={s.value}
-              title={s.label}
-              color={sort === s.value ? STATUS_COLORS.ON_AIR : COLORS.CARD_BACKGROUND}
+              title=""
+              color={sort === s.value ? STATUS_COLORS.ON_AIR : (isDark ? colors.card : COLORS.CARD_BACKGROUND)}
               onPress={() => setSort(s.value)}
-              textStyle={{ fontSize: 13, color: '#000', paddingVertical: 8, paddingHorizontal: 12 }}
-            />
+              style={{ borderColor: isDark ? colors.border : '#000' }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12 }}>
+                <Ionicons name={s.icon} size={14} color={sort === s.value ? '#000' : colors.text} />
+                <Text style={{ fontSize: 13, color: sort === s.value ? '#000' : colors.text, fontWeight: '700' }}>{s.label}</Text>
+              </View>
+            </NeoButton>
           ))}
         </ScrollView>
       </View>
@@ -113,7 +121,7 @@ export default function GenreDetailScreen() {
                 key={anime.id}
                 anime={anime}
                 color={color}
-                onPress={() => router.push(`/explore/${anime.id}`)}
+                onPress={() => router.push(`/anime/${anime.id}`)}
               />
             )
           }) : (
@@ -127,7 +135,7 @@ export default function GenreDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.BACKGROUND, padding: 20 },
+  container: { flex: 1, padding: 20 },
   header: { marginBottom: 16, marginTop: 40 },
   subtitle: { color: COLORS.TEXT_SECONDARY, marginTop: 8, fontWeight: "bold" },
   sortSection: { marginBottom: 24 },

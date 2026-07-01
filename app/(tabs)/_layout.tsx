@@ -3,19 +3,25 @@ import { Tabs } from "expo-router";
 import React from "react";
 
 import { HapticTab } from "@/components/haptic-tab";
-import { COLORS, STATUS_COLORS } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { COLORS, STATUS_COLORS, Neubrutalism } from "@/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colors, isDark } = useTheme();
 
   return (
     <Tabs
       initialRouteName="home"
       screenOptions={{
-        tabBarActiveTintColor: COLORS.ACCENT,
+        tabBarActiveTintColor: isDark ? colors.accent : COLORS.ACCENT,
+        tabBarInactiveTintColor: colors.textMuted,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          borderTopWidth: Neubrutalism.borderWidth,
+        }
       }}
     >
       <Tabs.Screen

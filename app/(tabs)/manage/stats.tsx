@@ -7,6 +7,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
 import { ThemedText } from "@/components/themed-text";
 import { NeoButton, NeoCard } from "@/components/NeoKit";
+import { useTheme } from "@/src/context/ThemeContext";
 
 export default function StatsScreen() {
   const [stats, setStats] = useState({
@@ -16,6 +17,7 @@ export default function StatsScreen() {
     totalDropped: 0,
     totalUlasan: 0,
   });
+  const { colors, isDark } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const user = auth.currentUser;
 
@@ -59,8 +61,8 @@ export default function StatsScreen() {
 
   if (!user) {
     return (
-      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-        <ThemedText style={{ fontWeight: "bold", fontSize: 16, marginBottom: 20 }}>
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center", backgroundColor: colors.background }]}>
+        <ThemedText style={{ fontWeight: "bold", fontSize: 16, marginBottom: 20, color: colors.text }}>
           Silakan login untuk melihat statistik.
         </ThemedText>
         <NeoButton
@@ -81,14 +83,14 @@ export default function StatsScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <NeoButton
           title="← Kembali"
-          color={COLORS.PRIMARY}
+          color={isDark ? colors.primary : COLORS.PRIMARY}
           onPress={() => router.back()}
-          style={{ marginBottom: 16 }}
-          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14 }}
+          style={{ marginBottom: 16, alignSelf: 'flex-start' }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14}}
         />
         <ThemedText type="title">Statistik Tontonan</ThemedText>
         <ThemedText style={styles.subtitle}>Rekap koleksi anime kamu dari Firebase</ThemedText>
@@ -99,9 +101,14 @@ export default function StatsScreen() {
       ) : (
         <View style={styles.grid}>
           {STAT_CARDS.map((card) => (
-            <NeoCard key={card.label} color={card.bg} contentStyle={styles.statCard}>
-              <ThemedText style={[styles.statValue, { color: card.textColor }]}>{card.value}</ThemedText>
-              <ThemedText style={[styles.statLabel, { color: card.textColor }]}>{card.label}</ThemedText>
+            <NeoCard 
+              key={card.label} 
+              color={isDark ? colors.card : card.bg} 
+              style={{ borderColor: isDark ? card.bg : '#000' }}
+              contentStyle={styles.statCard}
+            >
+              <ThemedText style={[styles.statValue, { color: isDark ? card.bg : card.textColor }]}>{card.value}</ThemedText>
+              <ThemedText style={[styles.statLabel, { color: isDark ? card.bg : card.textColor }]}>{card.label}</ThemedText>
             </NeoCard>
           ))}
         </View>
@@ -112,11 +119,11 @@ export default function StatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: COLORS.BACKGROUND, padding: 20 },
+  container:  { flex: 1, padding: 20 },
   header:     { marginBottom: 24, marginTop: 40 },
   subtitle:   { color: COLORS.TEXT_SECONDARY, marginTop: 8, fontWeight: "bold" },
   grid:       { gap: 16, paddingBottom: 40 },
   statCard:   { padding: 28, alignItems: "center" },
-  statValue:  { fontSize: 52, fontWeight: "900", marginBottom: 8 },
+  statValue:  { fontSize: 52, lineHeight: 60, fontWeight: "900", marginBottom: 8 },
   statLabel:  { fontSize: 16, fontWeight: "bold" },
 });

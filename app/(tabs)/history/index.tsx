@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { fetchAniList } from "@/src/services/anilist";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/src/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const BATCH_QUERY = `
   query GetAnimeBatch($ids: [Int]) {
@@ -74,7 +75,7 @@ export default function HistoryScreen() {
         <View style={styles.authCard}>
           <View style={[styles.authShadow, { backgroundColor: colors.shadow }]} />
           <View style={[styles.authCardInner, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={styles.authIcon}>📜</Text>
+            <Ionicons name="book" size={48} color={colors.text} style={{ marginBottom: 12 }} />
             <ThemedText style={styles.authTitle}>Riwayat Aktivitas</ThemedText>
             <ThemedText style={[styles.authSub, { color: colors.textMuted }]}>Login untuk melihat riwayat anime yang pernah kamu buka</ThemedText>
             <NeoButton title="Masuk / Login" color={STATUS_COLORS.ON_AIR} onPress={() => router.push("/(tabs)/profile/login")} style={{ width: "100%" }} />
@@ -122,7 +123,10 @@ export default function HistoryScreen() {
 
       {/* ── Section Label ── */}
       <View style={styles.sectionHeader}>
-        <ThemedText style={styles.sectionLabel}>📋 Timeline Log</ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Ionicons name="list" size={18} color={colors.text} />
+          <ThemedText style={styles.sectionLabel}>Timeline Log</ThemedText>
+        </View>
       </View>
 
       {/* ── Content ── */}
@@ -134,7 +138,7 @@ export default function HistoryScreen() {
         <View style={styles.empty}>
           <View style={[styles.emptyShadow, { backgroundColor: colors.shadow }]} />
           <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={styles.emptyIcon}>🎌</Text>
+            <Ionicons name="play-circle" size={40} color={colors.text} style={{ marginBottom: 12 }} />
             <ThemedText style={styles.emptyTitle}>Belum Ada Riwayat</ThemedText>
             <ThemedText style={[styles.emptySub, { color: colors.textMuted }]}>Mulai jelajahi anime untuk mencatat riwayat aktivitas</ThemedText>
           </View>
@@ -167,7 +171,7 @@ export default function HistoryScreen() {
                 key={log.id}
                 anime={fakeAnime}
                 topRightText={`Dilihat: ${timeString}`}
-                onPress={() => router.push(`/explore/${log.animeId}`)}
+                onPress={() => router.push(`/anime/${log.animeId}`)}
               />
             );
           })}

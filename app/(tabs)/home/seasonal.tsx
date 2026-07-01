@@ -138,7 +138,7 @@ export default function SeasonalScreen() {
                 <NeoAnimeCard
                   key={anime.id}
                   anime={anime}
-                  onPress={() => router.push(`/explore/${anime.id}`)}
+                  onPress={() => router.push(`/anime/${anime.id}`)}
                 />
               );
             })

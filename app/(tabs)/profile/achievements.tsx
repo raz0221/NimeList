@@ -9,9 +9,12 @@ import { ThemedText } from "@/components/themed-text";
 import { Skeleton } from "@/components/Skeleton";
 import { NeoButton, NeoCard } from "@/components/NeoKit";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@/src/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function AchievementsScreen() {
   const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
   const [stats, setStats] = useState({
     completedCount: 0,
     watchlistTotal: 0,
@@ -102,7 +105,7 @@ export default function AchievementsScreen() {
       title: "Newbie Otaku", 
       desc: "Selesaikan 1 anime", 
       color: COLORS.PRIMARY,
-      icon: "🎖️",
+      icon: "medal" as const,
       isUnlocked: stats.completedCount >= 1
     },
     { 
@@ -110,7 +113,7 @@ export default function AchievementsScreen() {
       title: "Binge Watcher", 
       desc: "Selesaikan 5 anime", 
       color: COLORS.ACCENT,
-      icon: "🍿",
+      icon: "film" as const,
       isUnlocked: stats.completedCount >= 5
     },
     { 
@@ -118,7 +121,7 @@ export default function AchievementsScreen() {
       title: "Kolektor Handal", 
       desc: "Tambahkan 10 anime ke koleksi", 
       color: "#FDE047",
-      icon: "📚",
+      icon: "library" as const,
       isUnlocked: stats.watchlistTotal >= 10
     },
     { 
@@ -126,7 +129,7 @@ export default function AchievementsScreen() {
       title: "Kritikus Anime", 
       desc: "Tulis 5 ulasan", 
       color: STATUS_COLORS.ON_AIR,
-      icon: "✍️",
+      icon: "create" as const,
       isUnlocked: stats.reviewTotal >= 5
     },
     { 
@@ -134,7 +137,7 @@ export default function AchievementsScreen() {
       title: "Sang Pengamat", 
       desc: "Tambahkan 30 anime ke koleksi", 
       color: STATUS_COLORS.MOVIE,
-      icon: "👁️",
+      icon: "eye" as const,
       isUnlocked: stats.watchlistTotal >= 30
     },
   ];
@@ -151,7 +154,7 @@ export default function AchievementsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <NeoButton
           title={`← ${t("Kembali")}`}
@@ -175,10 +178,13 @@ export default function AchievementsScreen() {
           {BADGES.map((badge) => {
             const isEquipped = equippedTitle === badge.title;
             return (
-              <NeoCard key={badge.id} color={COLORS.CARD_BACKGROUND} contentStyle={styles.badgeCard}>
+              <NeoCard key={badge.id} color={isDark ? colors.card : COLORS.CARD_BACKGROUND} style={{ borderColor: isDark ? badge.color : '#000' }} contentStyle={styles.badgeCard}>
                 <View style={styles.badgeHeader}>
-                  <View style={[styles.iconBox, { backgroundColor: badge.isUnlocked ? badge.color : STATUS_COLORS.DEFAULT }]}>
-                    <ThemedText style={styles.iconText}>{badge.isUnlocked ? badge.icon : "🔒"}</ThemedText>
+                  <View style={[styles.iconBox, { backgroundColor: badge.isUnlocked ? badge.color : (isDark ? colors.border : STATUS_COLORS.DEFAULT), borderColor: isDark ? badge.color : '#000' }]}>
+                    {badge.isUnlocked 
+                      ? <Ionicons name={badge.icon} size={28} color="#000" />
+                      : <Ionicons name="lock-closed" size={28} color={isDark ? colors.textMuted : "#fff"} />
+                    }
                   </View>
                   <View style={styles.badgeInfo}>
                     <ThemedText style={styles.badgeTitle}>{badge.title}</ThemedText>
@@ -222,7 +228,7 @@ export default function AchievementsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.BACKGROUND, padding: 20 },
+  container: { flex: 1, padding: 20 },
   header: { marginBottom: 24, marginTop: 40 },
   subtitle: { color: COLORS.TEXT_SECONDARY, marginTop: 8, fontWeight: "bold" },
   grid: { gap: 16, paddingBottom: 40 },
@@ -236,8 +242,8 @@ const styles = StyleSheet.create({
   },
   iconText: { fontSize: 28 },
   badgeInfo: { flex: 1 },
-  badgeTitle: { fontSize: 18, fontWeight: "900", color: COLORS.TEXT_MAIN, marginBottom: 4 },
-  badgeDesc: { fontSize: 13, color: COLORS.TEXT_SECONDARY, marginBottom: 6 },
+  badgeTitle: { fontSize: 18, fontWeight: "900", marginBottom: 4 },
+  badgeDesc: { fontSize: 13, marginBottom: 6 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statusDot: { fontSize: 12 },
   statusText: { fontSize: 12, fontWeight: "900", textTransform: "uppercase" },
