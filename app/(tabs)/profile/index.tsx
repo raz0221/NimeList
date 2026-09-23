@@ -7,17 +7,18 @@ import { useTranslation } from "react-i18next";
 import { auth, db } from "@/src/lib/firebase";
 import { doc, onSnapshot, collection, query, where, getDocs } from "firebase/firestore";
 import { useState, useEffect } from "react";
-import { NeoCard } from "@/components/NeoKit";
+import { NeoCard, NeoModal } from "@/components/NeoKit";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 
 const MENU_ITEMS = [
-  { icon: "create", label: "Edit Profil",          route: "/(tabs)/profile/edit",         color: COLORS.PRIMARY },
-  { icon: "trophy", label: "Pencapaian & Gelar",   route: "/(tabs)/profile/achievements", color: "#FDE047" },
-  { icon: "settings", label: "Pengaturan Aplikasi",  route: "/(tabs)/profile/settings",     color: COLORS.ACCENT },
-  { icon: "information-circle", label: "Tentang Aplikasi",     route: "/(tabs)/profile/about",        color: STATUS_COLORS.ON_AIR },
-  { icon: "call", label: "Hubungi Kami",         route: "/(tabs)/profile/contact",      color: "#93C5FD" },
+  { icon: "create",             label: "Edit Profil",         route: "/(tabs)/profile/edit",         color: COLORS.PRIMARY },
+  { icon: "trophy",             label: "Pencapaian & Gelar",  route: "/(tabs)/profile/achievements", color: "#FDE047" },
+  { icon: "notifications",      label: "Pengingat Saya",      route: "/my-reminders",               color: STATUS_COLORS.ON_AIR },
+  { icon: "settings",           label: "Pengaturan Aplikasi", route: "/(tabs)/profile/settings",     color: COLORS.ACCENT },
+  { icon: "information-circle", label: "Tentang Aplikasi",    route: "/(tabs)/profile/about",        color: STATUS_COLORS.FINISHED },
+  { icon: "call",               label: "Hubungi Kami",        route: "/(tabs)/profile/contact",      color: "#93C5FD" },
 ];
 
 export default function ProfileScreen() {
@@ -25,12 +26,10 @@ export default function ProfileScreen() {
   const { colors, isDark } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [modalConfig, setModalConfig] = useState({ visible: false, title: "", message: "" });
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubAuth();
+    setUser(auth.currentUser);
   }, []);
 
   const [isValidTitle, setIsValidTitle] = useState(false);
@@ -41,38 +40,41 @@ export default function ProfileScreen() {
       setIsValidTitle(false);
       return;
     }
-    const unsub = onSnapshot(doc(db, "users", user.uid), async (docSnap) => {
+    const unsub = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setUserData(data);
 
-        // Validasi Badge
+        // Validasi Badge - lakukan secara async di luar onSnapshot secara aman
         if (data.equippedTitle) {
-          try {
-            const completedQ = query(collection(db, "user_collections"), where("userId", "==", user.uid), where("status", "==", "Completed"));
-            const completedSnap = await getDocs(completedQ);
-            const completedCount = completedSnap.size;
+          const validateBadge = async () => {
+            try {
+              const completedQ = query(collection(db, "user_collections"), where("userId", "==", user.uid), where("status", "==", "Completed"));
+              const completedSnap = await getDocs(completedQ);
+              const completedCount = completedSnap.size;
 
-            const watchlistQ = query(collection(db, "user_collections"), where("userId", "==", user.uid));
-            const watchlistSnap = await getDocs(watchlistQ);
-            const watchlistTotal = watchlistSnap.size;
+              const watchlistQ = query(collection(db, "user_collections"), where("userId", "==", user.uid));
+              const watchlistSnap = await getDocs(watchlistQ);
+              const watchlistTotal = watchlistSnap.size;
 
-            const reviewQ = query(collection(db, "reviews"), where("userId", "==", user.uid));
-            const reviewSnap = await getDocs(reviewQ);
-            const reviewTotal = reviewSnap.size;
+              const reviewQ = query(collection(db, "reviews"), where("userId", "==", user.uid));
+              const reviewSnap = await getDocs(reviewQ);
+              const reviewTotal = reviewSnap.size;
 
-            let unlocked = false;
-            const title = data.equippedTitle;
-            if (title === "Newbie Otaku" && completedCount >= 1) unlocked = true;
-            if (title === "Binge Watcher" && completedCount >= 5) unlocked = true;
-            if (title === "Kolektor Handal" && watchlistTotal >= 10) unlocked = true;
-            if (title === "Kritikus Anime" && reviewTotal >= 5) unlocked = true;
-            if (title === "Sang Pengamat" && watchlistTotal >= 30) unlocked = true;
+              let unlocked = false;
+              const title = data.equippedTitle;
+              if (title === "Newbie Otaku" && completedCount >= 1) unlocked = true;
+              if (title === "Binge Watcher" && completedCount >= 5) unlocked = true;
+              if (title === "Kolektor Handal" && watchlistTotal >= 10) unlocked = true;
+              if (title === "Kritikus Anime" && reviewTotal >= 5) unlocked = true;
+              if (title === "Sang Pengamat" && watchlistTotal >= 30) unlocked = true;
 
-            setIsValidTitle(unlocked);
-          } catch (e) {
-            setIsValidTitle(false);
-          }
+              setIsValidTitle(unlocked);
+            } catch (e) {
+              setIsValidTitle(false);
+            }
+          };
+          validateBadge();
         } else {
           setIsValidTitle(false);
         }
@@ -86,12 +88,18 @@ export default function ProfileScreen() {
       await signOut(auth);
       router.replace("/(tabs)/profile/login");
     } catch {
-      Alert.alert(t("Gagal"), t("Terjadi kesalahan saat proses logout."));
+      setModalConfig({ visible: true, title: t("Gagal"), message: t("Terjadi kesalahan saat proses logout.") });
     }
   };
 
   return (
     <ScrollView style={[styles.root, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <NeoModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setModalConfig({ ...modalConfig, visible: false })}
+      />
       {/* ── App Bar ── */}
       <View style={styles.appBar}>
         <ThemedText style={styles.appBarTitle}>Profil</ThemedText>
@@ -174,6 +182,24 @@ export default function ProfileScreen() {
         ))}
       </View>
 
+      {/* ── Admin Panel ── */}
+      {userData?.role === 'admin' && (
+        <View style={{ marginBottom: 20 }}>
+          <View style={styles.sectionHeader}>
+            <ThemedText style={styles.sectionLabel}>Khusus Admin</ThemedText>
+          </View>
+          <TouchableOpacity onPress={() => router.push("/admin-announcement")} style={styles.adminBtn}>
+            <View style={[styles.adminBtnShadow, { backgroundColor: colors.shadow }]} />
+            <View style={[styles.adminBtnMain, { backgroundColor: '#F87171', borderColor: colors.border }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Ionicons name="megaphone" size={22} color="#000" />
+                <Text style={styles.adminBtnText}>Admin Panel: Buat Pengumuman</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* ── Logout ── */}
       {user && (
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
@@ -230,6 +256,12 @@ const styles = StyleSheet.create({
   menuIcon: { fontSize: 18 },
   menuLabel: { flex: 1, fontSize: 15, fontWeight: "700" },
   menuChevron: { fontSize: 20, fontWeight: "900" },
+
+  // Admin Button
+  adminBtn: { position: "relative" },
+  adminBtnShadow: { position: "absolute", top: 4, left: 4, right: -4, bottom: -4, borderRadius: Neubrutalism.borderRadius },
+  adminBtnMain: { borderRadius: Neubrutalism.borderRadius, borderWidth: Neubrutalism.borderWidth, paddingVertical: 14, paddingHorizontal: 16, alignItems: "center" },
+  adminBtnText: { fontWeight: "900", fontSize: 15, color: "#000" },
 
   // Logout
   logoutBtn: { position: "relative" },

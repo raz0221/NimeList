@@ -48,15 +48,52 @@ const SEASONAL_QUERY = `
   }
 `;
 
-const SEASONS = [
-  { label: "Spring 2026", season: "SPRING", year: 2026 },
-  { label: "Summer 2026", season: "SUMMER", year: 2026 },
-  { label: "Fall 2026", season: "FALL", year: 2026 },
-  { label: "Winter 2026", season: "WINTER", year: 2026 },
-];
+function getCurrentSeason(): { season: string; year: number } {
+  const date = new Date();
+  const month = date.getMonth() + 1; // 1-12
+  const year = date.getFullYear();
+
+  // Kuartal anime standar: Winter 1-3, Spring 4-6, Summer 7-9, Fall 10-12
+  let season = "WINTER";
+  if (month >= 4 && month <= 6) season = "SPRING";
+  else if (month >= 7 && month <= 9) season = "SUMMER";
+  else if (month >= 10 && month <= 12) season = "FALL";
+
+  return { season, year };
+}
+
+function getNextSeason(season: string, year: number): { season: string; year: number } {
+  const ORDER = ["WINTER", "SPRING", "SUMMER", "FALL"];
+  const idx = ORDER.indexOf(season);
+  const nextIdx = (idx + 1) % 4;
+  const nextYear = nextIdx === 0 ? year + 1 : year;
+  return { season: ORDER[nextIdx], year: nextYear };
+}
+
+function seasonLabel(season: string, year: number): string {
+  const MAP: Record<string, string> = {
+    WINTER: "Winter", SPRING: "Spring", SUMMER: "Summer", FALL: "Fall"
+  };
+  return `${MAP[season]} ${year}`;
+}
+
+function generateSeasons() {
+  const current = getCurrentSeason();
+  // Bangun 4 musim dimulai dari musim saat ini
+  const seasons = [];
+  let s = current;
+  for (let i = 0; i < 4; i++) {
+    seasons.push({ label: seasonLabel(s.season, s.year), season: s.season, year: s.year });
+    s = getNextSeason(s.season, s.year);
+  }
+  // Index 0 selalu = musim saat ini (paling kiri)
+  return { seasons, activeIndex: 0 };
+}
+
+const { seasons: DYNAMIC_SEASONS, activeIndex: INITIAL_SEASON_INDEX } = generateSeasons();
 
 export default function SeasonalScreen() {
-  const [activeSeasonIndex, setActiveSeasonIndex] = useState(0);
+  const [activeSeasonIndex, setActiveSeasonIndex] = useState(INITIAL_SEASON_INDEX);
   const [animeList, setAnimeList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { colors, isDark } = useTheme();
@@ -65,7 +102,7 @@ export default function SeasonalScreen() {
     const fetchSeasonal = async () => {
       setIsLoading(true);
       try {
-        const selectedSeason = SEASONS[activeSeasonIndex];
+        const selectedSeason = DYNAMIC_SEASONS[activeSeasonIndex];
         const response = await fetchAniList(SEASONAL_QUERY, {
           season: selectedSeason.season,
           seasonYear: selectedSeason.year,
@@ -102,20 +139,20 @@ export default function SeasonalScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterScroll}
         >
-          {SEASONS.map((s, idx) => (
+          {DYNAMIC_SEASONS.map((s, idx) => (
             <NeoButton
               key={s.label}
               title={s.label}
               color={
                 activeSeasonIndex === idx
-                  ? (isDark ? colors.primary : STATUS_COLORS.FINISHED)
+                  ? STATUS_COLORS.FINISHED  // Selalu warna cerah saat aktif
                   : colors.card
               }
               onPress={() => setActiveSeasonIndex(idx)}
               textStyle={{
                 color:
                   activeSeasonIndex === idx
-                    ? (isDark ? '#000' : COLORS.BUTTON_TEXT_LIGHT)
+                    ? '#000' // Teks hitam di atas warna cerah = selalu terbaca
                     : colors.text,
                 fontWeight: activeSeasonIndex === idx ? "900" : "bold",
               }}

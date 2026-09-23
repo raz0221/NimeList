@@ -7,12 +7,12 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchAniList } from "@/src/services/anilist";
-import { NeoCard } from "@/components/NeoKit";
+import { NeoButton, NeoCard } from "@/components/NeoKit";
 import { Skeleton } from "@/components/Skeleton";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from '@/src/context/ThemeContext';
 
-const UNREAD_KEY = '@anitrack_info_unread';
+const UNREAD_KEY = '@nimelist_info_unread';
 
 const TRENDING_QUERY = `
   query GetTrending {
@@ -39,14 +39,24 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const [trending, setTrending] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const { colors, isDark } = useTheme();
 
-  useEffect(() => {
+  const loadTrending = () => {
+    setIsLoading(true);
+    setFetchError(false);
     fetchAniList(TRENDING_QUERY)
       .then(r => setTrending(r.Page.media || []))
-      .catch(e => console.error(e))
+      .catch(e => {
+        console.error(e);
+        setFetchError(true);
+      })
       .finally(() => setIsLoading(false));
+  };
+
+  useEffect(() => {
+    loadTrending();
   }, []);
 
   // Cek status unread dari AsyncStorage setiap kali layar fokus
@@ -68,7 +78,7 @@ export default function HomeScreen() {
       {/* ── App Bar ── */}
       <View style={styles.appBar}>
         <View>
-          <ThemedText style={styles.appBarTitle}>AniTrack</ThemedText>
+          <ThemedText style={styles.appBarTitle}>NimeList</ThemedText>
           <ThemedText style={[styles.appBarSub, { color: colors.textMuted }]}>Selamat datang!</ThemedText>
         </View>
         {/* Bell icon dengan unread badge */}
@@ -127,7 +137,12 @@ export default function HomeScreen() {
       >
         {isLoading
           ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} width={120} height={196} />)
-          : trending.map(anime => {
+          : fetchError ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <ThemedText style={{ color: colors.textMuted, marginBottom: 10 }}>Gagal memuat anime trending.</ThemedText>
+              <NeoButton title="Coba Lagi" color={COLORS.PRIMARY} onPress={loadTrending} />
+            </View>
+          ) : trending.map(anime => {
               const title = anime.title.romaji || anime.title.english;
               return (
                 <TouchableOpacity
@@ -189,16 +204,6 @@ const styles = StyleSheet.create({
   notifBtnShadow: { position: "absolute", top: 3, left: 3, right: -3, bottom: -3, borderRadius: 99 },
   notifBtnMain: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 99, borderWidth: Neubrutalism.borderWidth, justifyContent: "center", alignItems: "center" },
   notifBadgeDot: { position: "absolute", top: 2, right: 2, width: 11, height: 11, borderRadius: 6, backgroundColor: "#EF4444", borderWidth: 2, borderColor: "#fff", zIndex: 10 },
-
-  // News Banner
-  mb20: { marginBottom: 24, position: "relative" },
-  newsShadow: { position: "absolute", top: 4, left: 4, right: -4, bottom: -4, backgroundColor: "#000", borderRadius: Neubrutalism.borderRadius, zIndex: 0 },
-  newsBanner: { backgroundColor: COLORS.ACCENT, borderRadius: Neubrutalism.borderRadius, borderWidth: Neubrutalism.borderWidth, borderColor: "#000", padding: 16, position: "relative", zIndex: 1 },
-  newsBadge: { backgroundColor: "#000", borderRadius: 4, alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 3, marginBottom: 8 },
-  newsBadgeText: { color: "#fff", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
-  newsTitle: { fontSize: 16, fontWeight: "900", marginBottom: 4 },
-  newsSub: { fontSize: 13, fontWeight: "600" },
-  newsArrow: { position: "absolute", right: 16, top: "50%", fontSize: 22, fontWeight: "900" },
 
   // Section header
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },

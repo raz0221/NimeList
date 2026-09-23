@@ -185,7 +185,7 @@ export default function FavoriteScreen() {
                   anime={fakeAnime}
                   color={TILE_COLORS[idx % TILE_COLORS.length]}
                   style={{ marginBottom: 12 }}
-                  onPress={() => router.push(`/(tabs)/anime/${anime.animeId || anime.id}`)}
+                  onPress={() => router.push(`/anime/${anime.animeId || anime.id}`)}
                 />
                 <NeoButton
                   title=""

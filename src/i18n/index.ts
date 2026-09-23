@@ -39,7 +39,7 @@ const idTranslation = {
   "Terjadi kesalahan saat proses logout.": "Terjadi kesalahan saat proses logout.",
 
   "🔔 Notifikasi": "🔔 Notifikasi",
-  "Selamat datang di AniTrack!": "Selamat datang di AniTrack!",
+  "Selamat datang di NimeList!": "Selamat datang di NimeList!",
   "📰 BERITA TERBARU": "📰 BERITA TERBARU",
   "Cek update anime terbaru minggu ini!": "Cek update anime terbaru minggu ini!",
   "Jelajahi Charts": "Jelajahi Charts",
@@ -117,7 +117,7 @@ const enTranslation = {
   "Terjadi kesalahan saat proses logout.": "An error occurred during logout.",
 
   "🔔 Notifikasi": "🔔 Notifications",
-  "Selamat datang di AniTrack!": "Welcome to AniTrack!",
+  "Selamat datang di NimeList!": "Welcome to NimeList!",
   "📰 BERITA TERBARU": "📰 LATEST NEWS",
   "Cek update anime terbaru minggu ini!": "Check out this week's latest anime updates!",
   "Jelajahi Charts": "Explore Charts",

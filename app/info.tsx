@@ -19,19 +19,19 @@ import {
   Animated,
   Dimensions,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  FlatList,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useTheme } from '@/src/context/ThemeContext';
-import { db } from '@/src/lib/firebase';
+import { auth, db } from '@/src/lib/firebase';
 import { fetchAniList } from '@/src/services/anilist';
 import { ThemedText } from '@/components/themed-text';
 import { NeoCard, NeoBadge } from '@/components/NeoKit';
@@ -42,7 +42,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TABS = ['Pengumuman', 'Berita Anime'] as const;
 type TabKey = typeof TABS[number];
 
-const UNREAD_KEY = '@anitrack_info_unread';
+const UNREAD_KEY = '@nimelist_info_unread';
 
 // ─── AniList Query ─────────────────────────────────────────────────────────────
 const LATEST_TRENDING_QUERY = `
@@ -89,9 +89,10 @@ const CATEGORY_COLORS = [
 interface SystemAnnouncement {
   id: string;
   title: string;
-  body: string;
+  message: string;
   type: 'info' | 'warning' | 'update' | 'maintenance';
   createdAt: { toDate: () => Date } | null;
+  expiresAt?: { toDate: () => Date } | null;
   isRead?: boolean;
 }
 
@@ -112,7 +113,7 @@ const TYPE_CONFIG: Record<SystemAnnouncement['type'], { icon: string; color: str
 };
 
 // ─── Komponen Card Pengumuman ──────────────────────────────────────────────────
-function AnnouncementCard({ item, colors }: { item: SystemAnnouncement; colors: any }) {
+function AnnouncementCard({ item, colors, isAdmin, onDelete }: { item: SystemAnnouncement; colors: any; isAdmin: boolean; onDelete: (id: string) => void }) {
   const cfg = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.info;
   const dateStr = item.createdAt?.toDate
     ? item.createdAt.toDate().toLocaleDateString('id-ID', {
@@ -129,13 +130,20 @@ function AnnouncementCard({ item, colors }: { item: SystemAnnouncement; colors: 
             <Text style={styles.typeBadgeText}>{cfg.label}</Text>
           </View>
         </View>
-        <ThemedText style={[styles.announcementDate, { color: colors.textMuted }]}>
-          <Ionicons name="calendar" size={11} color={colors.textMuted} /> {dateStr}
-        </ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <ThemedText style={[styles.announcementDate, { color: colors.textMuted }]}>
+            <Ionicons name="calendar" size={11} color={colors.textMuted} /> {dateStr}
+          </ThemedText>
+          {isAdmin && (
+            <TouchableOpacity onPress={() => onDelete(item.id)}>
+              <Ionicons name="trash-outline" size={18} color="#EF4444" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       <ThemedText style={styles.announcementTitle}>{item.title}</ThemedText>
       <ThemedText style={[styles.announcementBody, { color: colors.textMuted }]}>
-        {item.body}
+        {item.message}
       </ThemedText>
     </NeoCard>
   );
@@ -226,6 +234,8 @@ export default function InfoScreen() {
   const [isLoadingNews, setIsLoadingNews] = useState(true);
   const [isRefreshingNews, setIsRefreshingNews] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const user = auth.currentUser;
 
   // Animasi tab indicator
   const tabIndicatorX = useRef(new Animated.Value(0)).current;
@@ -256,20 +266,47 @@ export default function InfoScreen() {
     }
   }, []);
 
+  // ── Cek Role Admin ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    const checkAdmin = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists() && snap.data().role === 'admin') {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error('Gagal mengecek role:', error);
+      }
+    };
+    checkAdmin();
+  }, [user]);
+
   // ── Real-time Listener: Pengumuman Sistem (Firestore onSnapshot) ───────────
   useEffect(() => {
     const q = query(
-      collection(db, 'systemAnnouncements'),
+      collection(db, 'announcements'),
       orderBy('createdAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const items: SystemAnnouncement[] = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<SystemAnnouncement, 'id'>),
-        }));
+        const now = new Date();
+        const items: SystemAnnouncement[] = snapshot.docs
+          .map((d) => ({
+            id: d.id,
+            ...(d.data() as Omit<SystemAnnouncement, 'id'>),
+          }))
+          .filter((item) => {
+            // Filter out expired announcements
+            if (!item.expiresAt) return true;
+            return item.expiresAt.toDate() > now;
+          });
+
         setAnnouncements(items);
         setIsLoadingAnnouncements(false);
 
@@ -327,11 +364,25 @@ export default function InfoScreen() {
     }
 
     return (
-      <View style={styles.list}>
-        {announcements.map((item) => (
-          <AnnouncementCard key={item.id} item={item} colors={colors} />
-        ))}
-      </View>
+      <FlatList
+        data={announcements}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <AnnouncementCard 
+            item={item} 
+            colors={colors} 
+            isAdmin={isAdmin}
+            onDelete={handleDeleteAnnouncement}
+          />
+        )}
+        contentContainerStyle={[styles.scrollInner, { gap: 16 }]}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        removeClippedSubviews={true}
+        ListFooterComponent={<View style={{ height: 40 }} />}
+      />
     );
   };
 
@@ -357,11 +408,45 @@ export default function InfoScreen() {
     }
 
     return (
-      <View style={styles.list}>
-        {newsFeed.map((item, idx) => (
-          <NewsCard key={item.id} item={item} idx={idx} colors={colors} isDark={isDark} />
-        ))}
-      </View>
+      <FlatList
+        data={newsFeed}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item, index }) => (
+          <NewsCard item={item} idx={index} colors={colors} isDark={isDark} />
+        )}
+        contentContainerStyle={[styles.scrollInner, { gap: 16 }]}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        removeClippedSubviews={true}
+        refreshing={isRefreshingNews}
+        onRefresh={handleRefreshNews}
+        ListFooterComponent={<View style={{ height: 40 }} />}
+      />
+    );
+  };
+
+  // ── Hapus Pengumuman ───────────────────────────────────────────────────────
+  const handleDeleteAnnouncement = (id: string) => {
+    Alert.alert(
+      "Hapus Pengumuman",
+      "Apakah Anda yakin ingin menghapus pengumuman ini secara permanen?",
+      [
+        { text: "Batal", style: "cancel" },
+        { 
+          text: "Hapus", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'announcements', id));
+            } catch (error) {
+              console.error("Gagal menghapus:", error);
+              Alert.alert("Error", "Gagal menghapus pengumuman.");
+            }
+          }
+        }
+      ]
     );
   };
 
@@ -442,24 +527,7 @@ export default function InfoScreen() {
       </View>
 
       {/* ── Content ── */}
-      <ScrollView
-        style={styles.scrollContent}
-        contentContainerStyle={styles.scrollInner}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          activeTab === 'Berita Anime' ? (
-            <RefreshControl
-              refreshing={isRefreshingNews}
-              onRefresh={handleRefreshNews}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          ) : undefined
-        }
-      >
-        {activeTab === 'Pengumuman' ? renderAnnouncements() : renderNews()}
-        <View style={{ height: 40 }} />
-      </ScrollView>
+      {activeTab === 'Pengumuman' ? renderAnnouncements() : renderNews()}
     </View>
   );
 }
@@ -468,23 +536,23 @@ export default function InfoScreen() {
 const FALLBACK_ANNOUNCEMENTS: SystemAnnouncement[] = [
   {
     id: 'fallback-1',
-    title: 'Selamat Datang di AniTrack!',
-    body: 'Aplikasi AniTrack sudah tersedia. Nikmati fitur pelacakan, koleksi, dan notifikasi anime terbaru.',
+    title: 'Selamat Datang di NimeList!',
+    message: 'Aplikasi NimeList sudah tersedia. Nikmati fitur pelacakan, koleksi, dan notifikasi anime terbaru.',
     type: 'info',
     createdAt: null,
   },
   {
     id: 'fallback-2',
     title: 'Fitur Notifikasi Anime Baru',
-    body: 'Sekarang kamu bisa berlangganan notifikasi untuk anime favorit! Klik tombol "Ingatkan Saya" di halaman detail anime.',
+    message: 'Sekarang kamu bisa berlangganan notifikasi untuk anime favorit! Klik tombol "Ingatkan Saya" di halaman detail anime.',
     type: 'update',
     createdAt: null,
   },
   {
-    id: 'fallback-3',
-    title: 'Pemeliharaan Terjadwal',
-    body: 'Sistem akan mengalami pemeliharaan singkat. Data kamu aman dan tersimpan.',
-    type: 'maintenance',
+    id: 'msg-3',
+    title: 'Fitur Admin Panel Aktif!',
+    message: 'Sekarang Admin dapat membuat pengumuman langsung dari dalam aplikasi.',
+    type: 'info',
     createdAt: null,
   },
 ];

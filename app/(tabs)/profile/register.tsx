@@ -1,12 +1,13 @@
-import { NeoButton, NeoInput } from "@/components/NeoKit";
+import { NeoButton, NeoInput, NeoModal } from "@/components/NeoKit";
 import { COLORS, STATUS_COLORS } from "@/constants/theme";
 import { auth, db } from "@/src/lib/firebase";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { router } from "expo-router";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithCredential,
+  updateProfile,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
@@ -35,9 +36,11 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const [modalConfig, setModalConfig] = useState({ visible: false, title: "", message: "" });
+
   const handleRegister = async () => {
     if (!username || !email || !password) {
-      Alert.alert("Error", "Harap isi semua field!");
+      setModalConfig({ visible: true, title: "Error", message: "Harap isi semua field!" });
       return;
     }
 
@@ -49,6 +52,9 @@ export default function RegisterScreen() {
         password,
       );
       const user = userCredential.user;
+
+      // Update displayName di Firebase Auth
+      await updateProfile(user, { displayName: username });
 
       // Simpan data profil awal ke Firestore
       await setDoc(doc(db, "users", user.uid), {
@@ -64,11 +70,11 @@ export default function RegisterScreen() {
         await saveTokenToFirestore(user.uid, token);
       }
 
-      // Langsung arahkan ke profile karena Firebase Auth otomatis login setelah register
+      // Langsung arahkan ke tab profil untuk mereset stack
       router.replace("/(tabs)/profile");
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Gagal Daftar", error.message);
+      setModalConfig({ visible: true, title: "Gagal Daftar", message: error.message });
     } finally {
       setIsLoading(false);
     }
@@ -116,9 +122,25 @@ export default function RegisterScreen() {
 
       router.replace("/(tabs)/profile");
     } catch (error: any) {
-      console.error(error);
-      if (error.code !== "SIGN_IN_CANCELLED") {
-        Alert.alert("Gagal Daftar via Google", error.message);
+      console.error("[Google Register Error]", JSON.stringify({
+        code: error.code,
+        message: error.message,
+      }));
+
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // Pengguna menutup dialog — abaikan
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        setModalConfig({ visible: true, title: "Sedang Diproses", message: "Proses Google sedang berlangsung, harap tunggu." });
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        setModalConfig({ visible: true, title: "Google Play Tidak Tersedia", message: "Perbarui Google Play Services di perangkat Anda." });
+      } else {
+        // DEVELOPER_ERROR (kode 10): SHA-1 release belum terdaftar di Firebase Console
+        // atau google-services.json belum didownload ulang setelah SHA ditambahkan.
+        setModalConfig({
+          visible: true,
+          title: "Gagal Daftar via Google",
+          message: `[Kode: ${error.code ?? 'UNKNOWN'}] ${error.message}`,
+        });
       }
     } finally {
       setIsLoading(false);
@@ -127,6 +149,12 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <NeoModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setModalConfig({ ...modalConfig, visible: false })}
+      />
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Buat Akun</Text>

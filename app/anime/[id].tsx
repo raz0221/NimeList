@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Alert, StyleSheet, TouchableOpacity, View, ScrollView, ActivityIndicator, Text } from "react-native";
+import { StyleSheet, TouchableOpacity, View, ScrollView, ActivityIndicator, Text } from "react-native";
 import { Image } from "expo-image";
 import { useLocalSearchParams, router, Stack } from "expo-router";
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, updateDoc, setDoc } from "firebase/firestore";
@@ -9,7 +9,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/src/context/ThemeContext";
 import { fetchAniList } from "@/src/services/anilist";
 import { auth, db } from "@/src/lib/firebase";
-import { NeoCard, NeoBadge, NeoButton, NeoInput } from "@/components/NeoKit";
+import { NeoCard, NeoBadge, NeoButton, NeoInput, NeoModal } from "@/components/NeoKit";
 import { toggleSubscription, checkSubscriptionStatus } from "@/src/services/notifyService";
 import { scheduleLocalNotification } from "@/src/services/notificationService";
 import { addReview, getReviews, reportReview, Review } from "@/src/services/reviewService";
@@ -47,6 +47,7 @@ export default function AnimeDetailScreen() {
   const { colors, isDark } = useTheme();
   const [animeDetail, setAnimeDetail] = useState<any>(null);
   const [isLoadingAnime, setIsLoadingAnime] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   const [review, setReview] = useState("");
   const [reviewsList, setReviewsList] = useState<Review[]>([]);
@@ -60,51 +61,55 @@ export default function AnimeDetailScreen() {
   const [collectionDocId, setCollectionDocId] = useState<string | null>(null);
   const [isNotified, setIsNotified] = useState(false);
   const [isTogglingNotify, setIsTogglingNotify] = useState(false);
+  const [modalConfig, setModalConfig] = useState({ visible: false, title: "", message: "" });
+  const showModal = (title: string, message: string) => setModalConfig({ visible: true, title, message });
 
   const stripHtml = (html: string) => {
     if (!html) return "";
     return html.replace(/<[^>]*>?/gm, '');
   };
 
-  useEffect(() => {
+  const fetchDetail = async () => {
     if (!id) return;
+    setIsLoadingAnime(true);
+    setFetchError(false);
+    try {
+      const data = await fetchAniList(ANIME_DETAIL_QUERY, { id: parseInt(id as string, 10) });
+      setAnimeDetail(data.Media);
 
-    // Fetch Anime Detail from AniList
-    const fetchDetail = async () => {
-      try {
-        const data = await fetchAniList(ANIME_DETAIL_QUERY, { id: parseInt(id as string, 10) });
-        setAnimeDetail(data.Media);
-
-        // Record history
-        if (auth.currentUser && data.Media) {
-          const historyRef = doc(db, "user_history", `${auth.currentUser.uid}_${id}`);
-          await setDoc(historyRef, {
-            userId: auth.currentUser.uid,
-            animeId: id,
-            title: data.Media.title.romaji,
-            englishTitle: data.Media.title.english || null,
-            poster: data.Media.coverImage?.extraLarge || data.Media.bannerImage,
-            episodes: data.Media.episodes || 0,
-            duration: data.Media.duration || 0,
-            rating: data.Media.averageScore ? (data.Media.averageScore / 10).toFixed(1) : "-",
-            genres: data.Media.genres || [],
-            type: data.Media.format || "TV",
-            description: data.Media.description || "",
-            source: data.Media.source || "",
-            studios: data.Media.studios?.nodes?.map((n: any) => n.name) || [],
-            startDate: data.Media.startDate || null,
-            isAdult: data.Media.isAdult || false,
-            timestamp: serverTimestamp()
-          }, { merge: true });
-        }
-      } catch (error) {
-        console.error("Error fetching anime detail:", error);
-      } finally {
-        setIsLoadingAnime(false);
+      // Record history
+      if (auth.currentUser && data.Media) {
+        const historyRef = doc(db, "user_history", `${auth.currentUser.uid}_${id}`);
+        await setDoc(historyRef, {
+          userId: auth.currentUser.uid,
+          animeId: id,
+          title: data.Media.title.romaji,
+          englishTitle: data.Media.title.english || null,
+          poster: data.Media.coverImage?.extraLarge || data.Media.bannerImage,
+          episodes: data.Media.episodes || 0,
+          duration: data.Media.duration || 0,
+          rating: data.Media.averageScore ? (data.Media.averageScore / 10).toFixed(1) : "-",
+          genres: data.Media.genres || [],
+          type: data.Media.format || "TV",
+          description: data.Media.description || "",
+          source: data.Media.source || "",
+          studios: data.Media.studios?.nodes?.map((n: any) => n.name) || [],
+          startDate: data.Media.startDate || null,
+          isAdult: data.Media.isAdult || false,
+          timestamp: serverTimestamp()
+        }, { merge: true });
       }
-    };
+    } catch (error) {
+      console.error("Error fetching anime detail:", error);
+      setFetchError(true);
+    } finally {
+      setIsLoadingAnime(false);
+    }
+  };
 
+  useEffect(() => {
     fetchDetail();
+
 
     let unsubscribeCollection = () => {};
     if (auth.currentUser) {
@@ -174,13 +179,13 @@ export default function AnimeDetailScreen() {
 
   const handleKirimUlasan = async () => {
     if (!review.trim()) {
-      Alert.alert("Error", "Ulasan tidak boleh kosong!");
+      showModal('Error', 'Ulasan tidak boleh kosong!');
       return;
     }
 
     const currentUser = auth.currentUser;
     if (!currentUser) {
-      Alert.alert("Akses Ditolak", "Anda harus login untuk mengirim ulasan.");
+      showModal('Akses Ditolak', 'Anda harus login untuk mengirim ulasan.');
       return;
     }
 
@@ -188,43 +193,25 @@ export default function AnimeDetailScreen() {
     try {
       const username = getUsername();
       await addReview(id as string, currentUser.uid, username, review);
-      
-      Alert.alert("Sukses", "Ulasan berhasil dikirim!");
+      showModal('Sukses', 'Ulasan berhasil dikirim!');
       setReview("");
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", "Gagal mengirim ulasan: " + error.message);
+      showModal('Error', 'Gagal mengirim ulasan: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleReport = (reviewId: string) => {
-    Alert.alert(
-      "Laporkan Ulasan",
-      "Apakah Anda yakin ingin melaporkan ulasan ini sebagai tidak pantas?",
-      [
-        { text: "Batal", style: "cancel" },
-        { 
-          text: "Laporkan", 
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await reportReview(reviewId);
-              Alert.alert("Dilaporkan", "Ulasan telah dilaporkan dan akan ditinjau.");
-            } catch (err: any) {
-              Alert.alert("Error", "Gagal melaporkan ulasan: " + err.message);
-            }
-          }
-        }
-      ]
-    );
+    showModal('Laporkan Ulasan', 'Fitur laporan telah diterima. Ulasan ini akan ditinjau oleh tim kami.');
+    reportReview(reviewId).catch(err => console.error('Gagal melaporkan:', err));
   };
 
   const handleSetStatus = async (status: string) => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
-      Alert.alert("Akses Ditolak", "Anda harus login untuk menyimpan koleksi.");
+      showModal('Akses Ditolak', 'Anda harus login untuk menyimpan koleksi.');
       return;
     }
 
@@ -262,7 +249,7 @@ export default function AnimeDetailScreen() {
       }
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", "Gagal memperbarui status: " + error.message);
+      showModal('Error', 'Gagal memperbarui status: ' + error.message);
     }
   };
 
@@ -270,19 +257,8 @@ export default function AnimeDetailScreen() {
   const handleNotify = async () => {
     const currentUser = auth.currentUser;
 
-    // Guard: user belum login
     if (!currentUser) {
-      Alert.alert(
-        'Login Diperlukan',
-        'Kamu perlu login untuk mengaktifkan notifikasi anime ini. Login sekarang?',
-        [
-          { text: 'Batal', style: 'cancel' },
-          {
-            text: 'Login',
-            onPress: () => router.push('/(tabs)/profile/login'),
-          },
-        ]
-      );
+      showModal('Login Diperlukan', 'Kamu perlu login untuk mengaktifkan notifikasi anime ini.');
       return;
     }
 
@@ -292,48 +268,77 @@ export default function AnimeDetailScreen() {
     try {
       const animeTitle = animeDetail.title.romaji || 'Anime';
       const animeStatus = animeDetail.status || 'RELEASING';
-      const newState = await toggleSubscription(
-        currentUser.uid,
-        id as string,
+      const nextEpisode = animeDetail.nextAiringEpisode;
+      const coverImage = animeDetail.coverImage?.extraLarge || null;
+
+      const newState = await toggleSubscription({
+        userId: currentUser.uid,
+        animeId: id as string,
         animeTitle,
-        animeStatus
-      );
+        animeStatus,
+        nextEpisode: nextEpisode?.episode ?? null,
+        nextAiringAt: nextEpisode?.airingAt ?? null,
+        coverImage,
+      });
       setIsNotified(newState);
 
       if (newState) {
-        const nextEpisode = animeDetail.nextAiringEpisode;
-        
         if (nextEpisode && nextEpisode.timeUntilAiring > 0) {
-          // Jadwalkan notifikasi tepat saat episode baru tayang
+          const tUntil = nextEpisode.timeUntilAiring; // detik
+          const THIRTY_MIN = 30 * 60;
+
+          // T-0: notifikasi tepat saat tayang
           await scheduleLocalNotification({
-            title: `Episode ${nextEpisode.episode} Segera Tayang!`,
-            body: `"${animeTitle}" Episode ${nextEpisode.episode} akan tayang sebentar lagi. Jangan sampai ketinggalan!`,
-            delaySeconds: nextEpisode.timeUntilAiring,
+            title: `🎌 Episode ${nextEpisode.episode} Tayang Sekarang!`,
+            body: `"${animeTitle}" Episode ${nextEpisode.episode} sudah bisa ditonton!`,
+            delaySeconds: tUntil,
+            data: { animeId: id, type: 'episode_live' },
           });
-          Alert.alert(
-            'Notifikasi Dijadwalkan',
-            `Notifikasi dijadwalkan untuk Episode ${nextEpisode.episode} "${animeTitle}"! Kamu akan diingatkan saat episode tersebut tayang.`,
-            [{ text: 'Oke' }]
+
+          // T-30: pengingat 30 menit sebelum tayang (hanya jika waktu > 30 menit)
+          if (tUntil > THIRTY_MIN) {
+            await scheduleLocalNotification({
+              title: `⏰ 30 Menit Lagi! Episode ${nextEpisode.episode}`,
+              body: `"${animeTitle}" akan tayang dalam 30 menit. Siap-siap!`,
+              delaySeconds: tUntil - THIRTY_MIN,
+              data: { animeId: id, type: 'episode_reminder' },
+            });
+          }
+
+          // ✅ FIX: Notifikasi konfirmasi instan agar konsisten dengan anime tanpa jadwal
+          await scheduleLocalNotification({
+            title: '🔔 Notifikasi Dijadwalkan!',
+            body: `Kamu akan diingatkan sebelum & saat Episode ${nextEpisode.episode} "${animeTitle}" tayang.`,
+            delaySeconds: 1,
+            data: { animeId: id, type: 'schedule_confirm' },
+          });
+
+          // Format waktu countdown
+          const hours = Math.floor(tUntil / 3600);
+          const mins = Math.floor((tUntil % 3600) / 60);
+          const timeStr = hours > 0 ? `${hours} jam ${mins} menit` : `${mins} menit`;
+
+          showModal(
+            '🔔 Notifikasi Dijadwalkan!',
+            `Kamu akan diingatkan:\n• 30 menit sebelum Episode ${nextEpisode.episode} tayang\n• Tepat saat Episode ${nextEpisode.episode} tayang\n\nHitung mundur: ${timeStr} lagi.`
           );
         } else {
-          // Tidak ada episode terjadwal (mungkin sudah tamat atau belum ada jadwal)
           await scheduleLocalNotification({
-            title: 'Notifikasi Diaktifkan!',
+            title: '🔔 Notifikasi Diaktifkan!',
             body: `Kamu akan mendapat pemberitahuan untuk konten baru dari "${animeTitle}".`,
-            delaySeconds: 1,
+            delaySeconds: 2,
           });
-          Alert.alert(
+          showModal(
             'Berhasil',
-            `Notifikasi diaktifkan untuk "${animeTitle}"! Belum ada jadwal episode terbaru saat ini.`,
-            [{ text: 'Oke' }]
+            `Notifikasi diaktifkan untuk "${animeTitle}"! Belum ada jadwal episode terbaru saat ini.`
           );
         }
       } else {
-        Alert.alert('Dinonaktifkan', `Notifikasi untuk "${animeTitle}" telah dimatikan.`);
+        showModal('Dinonaktifkan', `Notifikasi untuk "${animeTitle}" telah dimatikan.`);
       }
     } catch (error: any) {
       console.error('[NotifyMe] Error:', error);
-      Alert.alert('Error', 'Gagal mengubah status notifikasi. Coba lagi.');
+      showModal('Error', 'Gagal mengubah status notifikasi. Coba lagi.');
     } finally {
       setIsTogglingNotify(false);
     }
@@ -344,11 +349,18 @@ export default function AnimeDetailScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
+      <NeoModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setModalConfig({ ...modalConfig, visible: false })}
+      />
       <NeoButton
         title="← Kembali"
+        color={COLORS.PRIMARY}
         onPress={() => router.back()}
         style={{ marginBottom: 20, marginTop: 56 }}
-        textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14 }}
+        textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14, color: '#000' }}
       />
 
       {isLoadingAnime ? (
@@ -479,6 +491,11 @@ export default function AnimeDetailScreen() {
             </View>
           )}
         </>
+      ) : fetchError ? (
+        <View style={{ alignItems: 'center', marginTop: 40 }}>
+          <ThemedText style={[styles.errorText, { marginBottom: 16 }]}>Gagal memuat data anime. Periksa koneksi internet Anda.</ThemedText>
+          <NeoButton title="Coba Lagi" color={COLORS.PRIMARY} onPress={fetchDetail} />
+        </View>
       ) : (
         <ThemedText style={styles.errorText}>Anime tidak ditemukan.</ThemedText>
       )}

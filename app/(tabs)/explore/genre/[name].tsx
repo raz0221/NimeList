@@ -58,20 +58,24 @@ export default function GenreDetailScreen() {
   
   const [animeList, setAnimeList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [sort, setSort] = useState("TRENDING_DESC");
 
+  const fetchGenreData = async () => {
+    setIsLoading(true);
+    setFetchError(false);
+    try {
+      const response = await fetchAniList(GENRE_QUERY, { genre: genreName, sort: [sort] });
+      setAnimeList(response.Page.media || []);
+    } catch (error) {
+      console.error("Error fetching genre:", error);
+      setFetchError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchGenreData = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetchAniList(GENRE_QUERY, { genre: genreName, sort: [sort] });
-        setAnimeList(response.Page.media || []);
-      } catch (error) {
-        console.error("Error fetching genre:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchGenreData();
   }, [genreName, sort]);
 
@@ -110,6 +114,11 @@ export default function GenreDetailScreen() {
 
       {isLoading ? (
         <ActivityIndicator size="large" color={COLORS.PRIMARY} style={{ marginTop: 40 }} />
+      ) : fetchError ? (
+        <View style={{ alignItems: 'center', marginTop: 40 }}>
+          <ThemedText style={{ color: COLORS.TEXT_SECONDARY, marginBottom: 16 }}>Gagal memuat data. Periksa koneksi internet Anda.</ThemedText>
+          <NeoButton title="Coba Lagi" color={COLORS.PRIMARY} onPress={fetchGenreData} />
+        </View>
       ) : (
         <View style={styles.list}>
           {animeList.length > 0 ? animeList.map((anime, idx) => {

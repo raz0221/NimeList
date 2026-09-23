@@ -67,6 +67,7 @@ export default function ManageScreen() {
   const [daftarAnime, setDaftarAnime] = useState<FirestoreCollectionDoc[]>([]);
   const [richAnimeData, setRichAnimeData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const user = auth.currentUser;
 
   useEffect(() => {
@@ -78,6 +79,7 @@ export default function ManageScreen() {
 
       const animeIds = collections.map(c => parseInt(String(c.animeId ?? ''), 10)).filter(id => !isNaN(id));
       if (animeIds.length > 0) {
+        setFetchError(false);
         try {
           const res = await fetchAniList(BATCH_QUERY, { ids: animeIds });
           const mediaList = res.Page.media || [];
@@ -86,12 +88,14 @@ export default function ManageScreen() {
           setRichAnimeData(dataMap);
         } catch (error) {
           console.error("Batch fetch error", error);
+          setFetchError(true);
         }
       }
       setIsLoading(false);
     }, err => {
       Alert.alert("Error", "Gagal memuat watchlist.");
       setIsLoading(false);
+      setFetchError(true);
     });
     return () => unsub();
   }, [user]);
@@ -197,6 +201,10 @@ export default function ManageScreen() {
 
       {isLoading ? (
         <ActivityIndicator size="large" color={COLORS.PRIMARY} style={{ marginTop: 40 }} />
+      ) : fetchError ? (
+        <View style={{ alignItems: 'center', marginTop: 40 }}>
+          <ThemedText style={{ color: colors.textMuted, marginBottom: 16 }}>Gagal memuat data dari AniList.</ThemedText>
+        </View>
       ) : filteredAnime.length === 0 ? (
         <View style={styles.empty}>
           <View style={[styles.emptyShadow, { backgroundColor: isDark ? colors.card : '#000' }]} />
@@ -231,7 +239,7 @@ export default function ManageScreen() {
                 <NeoAnimeCard
                   anime={fakeAnime}
                   color={idx % 2 === 0 ? COLORS.CARD_BACKGROUND : "#F8F8F8"}
-                  onPress={() => router.push(`/(tabs)/anime/${anime.animeId}`)}
+                  onPress={() => router.push(`/anime/${anime.animeId}`)}
                   footerComponent={
                     <View style={styles.cardActions}>
                       <View style={{ flex: 1 }}>

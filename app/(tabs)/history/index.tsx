@@ -37,6 +37,7 @@ export default function HistoryScreen() {
   const [timeline, setTimeline] = useState<any[]>([]);
   const [richAnimeData, setRichAnimeData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const user = auth.currentUser;
   const { colors, isDark } = useTheme();
 
@@ -54,6 +55,7 @@ export default function HistoryScreen() {
       
       const animeIds = data.map(c => parseInt(c.animeId, 10)).filter(id => !isNaN(id));
       if (animeIds.length > 0) {
+        setFetchError(false);
         try {
           const res = await fetchAniList(BATCH_QUERY, { ids: animeIds });
           const mediaList = res.Page.media || [];
@@ -62,10 +64,14 @@ export default function HistoryScreen() {
           setRichAnimeData(dataMap);
         } catch (error) {
           console.error("Batch fetch error", error);
+          setFetchError(true);
         }
       }
       setIsLoading(false);
-    }, () => setIsLoading(false));
+    }, () => {
+      setIsLoading(false);
+      setFetchError(true);
+    });
     return () => unsub();
   }, [user]);
 
@@ -133,6 +139,10 @@ export default function HistoryScreen() {
       {isLoading ? (
         <View style={{ gap: 16 }}>
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} width="100%" height={140} />)}
+        </View>
+      ) : fetchError ? (
+        <View style={{ alignItems: 'center', marginTop: 40 }}>
+          <ThemedText style={{ color: colors.textMuted, marginBottom: 16 }}>Gagal memuat histori. Periksa koneksi internet Anda.</ThemedText>
         </View>
       ) : timeline.length === 0 ? (
         <View style={styles.empty}>

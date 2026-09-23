@@ -63,9 +63,7 @@ const getMonthName = (month?: number) => {
 const formatSource = (source?: string) => {
   if (!source) return "Original";
   return source.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
-};
-
-export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style, footerComponent, onNotify, isNotified }: NeoAnimeCardProps) {
+};export const NeoAnimeCard = React.memo(function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style, footerComponent, onNotify, isNotified }: NeoAnimeCardProps) {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const titleMain = anime.title.romaji || anime.title.english || "Unknown Title";
@@ -94,8 +92,8 @@ export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style,
         
         {/* HEADER SECTION */}
         <View style={[styles.header, { borderColor: colors.border, backgroundColor: colors.shadow === '#000000' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)' }]}>
-          <ThemedText style={styles.titleMain} numberOfLines={2}>{titleMain}</ThemedText>
-          {titleSub && <ThemedText style={[styles.titleSub, { color: colors.textMuted }]} numberOfLines={1}>{titleSub}</ThemedText>}
+          <ThemedText style={styles.titleMain} numberOfLines={2} ellipsizeMode="tail">{titleMain}</ThemedText>
+          {titleSub && <ThemedText style={[styles.titleSub, { color: colors.textMuted }]} numberOfLines={1} ellipsizeMode="tail">{titleSub}</ThemedText>}
         </View>
 
         {/* SUBHEADER SECTION */}
@@ -115,8 +113,8 @@ export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style,
         {themes.length > 0 && (
           <View style={[styles.genresContainer, { borderColor: colors.border, backgroundColor: colors.shadow === '#000000' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' }]}>
             {themes.slice(0, 4).map(genre => (
-              <View key={genre} style={[styles.smallBadge, { borderColor: colors.border }]}>
-                <ThemedText style={[styles.smallBadgeText, { color: '#000' }]}>{genre}</ThemedText>
+              <View key={genre} style={[styles.smallBadge, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                <ThemedText style={[styles.smallBadgeText, { color: colors.text }]} numberOfLines={1} ellipsizeMode="tail">{genre}</ThemedText>
               </View>
             ))}
           </View>
@@ -128,8 +126,8 @@ export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style,
           <View style={[styles.posterContainer, { borderColor: colors.border }]}>
             <Image source={{ uri: anime.coverImage?.large }} style={styles.poster} contentFit="cover" />
             {rank && (
-              <View style={[styles.rankBadge, { borderColor: colors.border }]}>
-                <ThemedText style={styles.rankText}>#{rank}</ThemedText>
+              <View style={[styles.rankBadge, { borderColor: colors.border, backgroundColor: colors.primary }]}>
+                <ThemedText style={[styles.rankText, { color: colors.text }]}>#{rank}</ThemedText>
               </View>
             )}
             {/* Notify Me — floating top-right of poster */}
@@ -156,7 +154,7 @@ export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style,
           {/* Right: Details */}
           <View style={[styles.detailsContainer, { backgroundColor: colors.card }]}>
             <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
-              <ThemedText style={styles.synopsis} numberOfLines={expanded ? undefined : 4}>
+              <ThemedText style={styles.synopsis} numberOfLines={expanded ? undefined : 4} ellipsizeMode="tail">
                 {stripHtml(anime.description)}
               </ThemedText>
               <View style={styles.expandArrowContainer}>
@@ -165,16 +163,16 @@ export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style,
             </TouchableOpacity>
 
             <View style={styles.metaRow}>
-              <ThemedText style={styles.metaLabel}>Studio:</ThemedText>
-              <ThemedText style={styles.metaValue} numberOfLines={1}>{studio}</ThemedText>
+              <ThemedText style={styles.metaLabel} numberOfLines={1} ellipsizeMode="tail">Studio:</ThemedText>
+              <ThemedText style={styles.metaValue} numberOfLines={1} ellipsizeMode="tail">{studio}</ThemedText>
             </View>
             <View style={styles.metaRow}>
-              <ThemedText style={styles.metaLabel}>Source:</ThemedText>
-              <ThemedText style={styles.metaValue} numberOfLines={1}>{source}</ThemedText>
+              <ThemedText style={styles.metaLabel} numberOfLines={1} ellipsizeMode="tail">Source:</ThemedText>
+              <ThemedText style={styles.metaValue} numberOfLines={1} ellipsizeMode="tail">{source}</ThemedText>
             </View>
             <View style={styles.metaRow}>
-              <ThemedText style={styles.metaLabel}>Demographic:</ThemedText>
-              <ThemedText style={styles.metaValue} numberOfLines={1}>{demographic}</ThemedText>
+              <ThemedText style={styles.metaLabel} numberOfLines={1} ellipsizeMode="tail">Demographic:</ThemedText>
+              <ThemedText style={styles.metaValue} numberOfLines={1} ellipsizeMode="tail">{demographic}</ThemedText>
             </View>
           </View>
         </View>
@@ -195,8 +193,6 @@ export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style,
           </View>
         </View>
 
-
-
         {footerComponent && (
           <View style={{ borderTopWidth: 1, borderColor: colors.border, backgroundColor: colors.shadow === '#000000' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', padding: 8 }}>
             {footerComponent}
@@ -206,8 +202,7 @@ export function NeoAnimeCard({ anime, onPress, rank, color, topRightText, style,
       </NeoCard>
     </TouchableOpacity>
   );
-}
-
+});
 const styles = StyleSheet.create({
   container: {
     width: "100%",
@@ -265,7 +260,6 @@ const styles = StyleSheet.create({
   smallBadgeText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#000',
   },
   body: {
     flexDirection: 'row',
@@ -293,7 +287,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
   },
   rankText: {
-    color: '#000',
     fontWeight: '900',
     fontSize: 14,
   },

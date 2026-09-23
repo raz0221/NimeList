@@ -68,6 +68,7 @@ export default function ExploreScreen() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
   const [showGenreModal, setShowGenreModal] = useState(false);
@@ -93,10 +94,12 @@ export default function ExploreScreen() {
       if (filterFormat) variables.format = [filterFormat];
       const response = await fetchAniList(SEARCH_QUERY, variables);
       setSearchResults(response.Page.media || []);
+      setFetchError(false);
     } catch (error) {
       console.error("Search Error:", error);
       Alert.alert(t("Gagal"), t("Terjadi kesalahan saat mencari anime."));
       setSearchResults([]);
+      setFetchError(true);
     } finally {
       setIsSearching(false);
     }
@@ -106,6 +109,7 @@ export default function ExploreScreen() {
     setSearchQuery("");
     setSearchResults([]);
     setHasSearched(false);
+    setFetchError(false);
   };
 
   return (
@@ -260,6 +264,10 @@ export default function ExploreScreen() {
                 <Skeleton key={idx} width="100%" height={140} />
               ))}
             </View>
+          ) : fetchError ? (
+            <NeoCard color={STATUS_COLORS.DEFAULT} contentStyle={styles.emptyState}>
+              <ThemedText style={[styles.emptyStateText, { color: colors.textMuted }]}>{t("Gagal mencari anime.")}</ThemedText>
+            </NeoCard>
           ) : searchResults.length === 0 ? (
             <NeoCard color={STATUS_COLORS.DEFAULT} contentStyle={styles.emptyState}>
               <ThemedText style={[styles.emptyStateText, { color: colors.textMuted }]}>{t("Anime tidak ditemukan.")}</ThemedText>

@@ -14,6 +14,30 @@ import { useTheme } from '@/src/context/ThemeContext';
 
 export * from './NeoAnimeCard';
 
+import { Modal } from 'react-native';
+
+export interface NeoModalProps {
+  visible: boolean;
+  title?: string;
+  message: string;
+  onClose: () => void;
+}
+
+export function NeoModal({ visible, title, message, onClose }: NeoModalProps) {
+  const { colors, isDark } = useTheme();
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <NeoCard color={isDark ? colors.card : '#fff'} style={{ width: '100%', maxWidth: 400 }}>
+          {title ? <Text style={{ fontSize: 20, fontWeight: '900', color: colors.text, marginBottom: 8 }}>{title}</Text> : null}
+          <Text style={{ fontSize: 16, color: colors.text, marginBottom: 20 }}>{message}</Text>
+          <NeoButton title="Tutup" onPress={onClose} style={{ alignSelf: 'flex-end' }} />
+        </NeoCard>
+      </View>
+    </Modal>
+  );
+}
+
 export interface NeoButtonProps {
   title: string;
   onPress?: () => void;
@@ -33,9 +57,10 @@ export function NeoButton({
 }: NeoButtonProps) {
   const { colors, isDark } = useTheme();
   const [isPressed, setIsPressed] = useState(false);
-  const buttonColor = isDark ? colors.card : (color || colors.primary);
+  const buttonColor = color || (isDark ? colors.card : colors.primary);
   const borderColor = isDark ? colors.border : '#000';
-  const textColor = isDark ? colors.text : '#000';
+  const isDarkBg = !color && isDark;
+  const textColor = isDarkBg ? colors.text : '#000';
 
   return (
     <TouchableOpacity
@@ -201,15 +226,12 @@ const styles = StyleSheet.create({
   },
   shadow: {
     position: 'absolute',
-    backgroundColor: '#000000',
   },
   mainLayer: {
-    borderColor: '#000000',
   },
   btnText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#000000',
     textAlign: 'center',
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -217,6 +239,5 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#000000',
   }
 });

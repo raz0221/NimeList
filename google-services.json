@@ -7,12 +7,20 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:963055544710:android:93d2cca2adf36421e3e407",
+        "mobilesdk_app_id": "1:963055544710:android:22f494c7b6c928d5e3e407",
         "android_client_info": {
-          "package_name": "com.anonymous.AnnasFazrulFarras_IlkomD"
+          "package_name": "com.anonymous.NimeList"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "963055544710-hm5bseeu7p50bmtv1k2dfsd10abqdgji.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anonymous.NimeList",
+            "certificate_hash": "aa5f03cb46697a9634912b87adbae771b0e1031e"
+          }
+        },
         {
           "client_id": "963055544710-fsc5frmrsj4v45tj81cl2bl52iq4ic48.apps.googleusercontent.com",
           "client_type": 3

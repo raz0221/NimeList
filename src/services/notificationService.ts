@@ -10,10 +10,10 @@
 import type * as NotificationsType from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
+import Constants from 'expo-constants';
 
-// ─── Konfigurasi handler notifikasi global ──────────────────────────────────
 let Notifications: typeof NotificationsType | null = null;
 try {
   Notifications = require('expo-notifications');
@@ -64,12 +64,12 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
   // Buat Android notification channel
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'AniTrack Notifications',
+    await Notifications.setNotificationChannelAsync('anime-channel', {
+      name: 'Anime Reminders & Announcements',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FBCFE8',
-      sound: 'default',
+      lightColor: '#1E3A8A',
+      sound: 'nime-sound.wav',
     });
   }
 
@@ -90,14 +90,19 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
   // Dapatkan Expo Push Token
   try {
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) {
+      console.warn('[Notifications] EAS projectId tidak ditemukan di app.json');
+    }
+    
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: 'anitrack-app-d8f2a', // Sesuaikan dengan EAS project ID kamu
+      projectId,
     });
     const token = tokenData.data;
     console.log('[Notifications] Expo Push Token:', token);
     return token;
   } catch (error) {
-    console.error('[Notifications] Gagal mendapatkan push token:', error);
+    console.log('[Notifications] Gagal mendapatkan push token:', error);
     return null;
   }
 }
@@ -112,10 +117,13 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 export async function saveTokenToFirestore(userId: string, token: string): Promise<void> {
   try {
     const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
+    // Gunakan setDoc + merge:true agar token selalu tersimpan,
+    // termasuk untuk akun lama yang belum memiliki field expoPushToken.
+    // updateDoc akan gagal jika field tidak ada, setDoc+merge tidak.
+    await setDoc(userRef, {
       expoPushToken: token,
       tokenUpdatedAt: new Date(),
-    });
+    }, { merge: true });
     console.log('[Notifications] Token berhasil disimpan ke Firestore.');
   } catch (error) {
     console.error('[Notifications] Gagal menyimpan token:', error);
@@ -139,17 +147,18 @@ export async function scheduleLocalNotification(
         title: payload.title,
         body: payload.body,
         data: payload.data ?? {},
-        sound: 'default',
+        sound: 'nime-sound.wav',
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: payload.delaySeconds ?? 1,
+        channelId: 'anime-channel',
       },
     });
     console.log('[Notifications] Notifikasi dijadwalkan:', identifier);
     return identifier;
   } catch (error) {
-    console.error('[Notifications] Gagal menjadwalkan notifikasi:', error);
+    console.log('[Notifications] Gagal menjadwalkan notifikasi:', error);
     return null;
   }
 }

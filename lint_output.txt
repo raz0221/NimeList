@@ -3,48 +3,48 @@
 > expo lint
 
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\explore\[id].tsx
+d:\NimeList\app\(tabs)\explore\[id].tsx
     5:73  warning  'orderBy' is defined but never used                              @typescript-eslint/no-unused-vars
   202:57  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
   202:66  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\explore\index.tsx
+d:\NimeList\app\(tabs)\explore\index.tsx
   3:10  warning  'ScrollView' is defined but never used         @typescript-eslint/no-unused-vars
   3:76  warning  'ActivityIndicator' is defined but never used  @typescript-eslint/no-unused-vars
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\history\achievements.tsx
+d:\NimeList\app\(tabs)\history\achievements.tsx
   2:58  warning  'ActivityIndicator' is defined but never used  @typescript-eslint/no-unused-vars
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\history\index.tsx
+d:\NimeList\app\(tabs)\history\index.tsx
   4:46  warning  'ActivityIndicator' is defined but never used  @typescript-eslint/no-unused-vars
   6:36  warning  'orderBy' is defined but never used            @typescript-eslint/no-unused-vars
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\home\news.tsx
+d:\NimeList\app\(tabs)\home\news.tsx
   2:77  warning  'Linking' is defined but never used  @typescript-eslint/no-unused-vars
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\home\top-airing.tsx
+d:\NimeList\app\(tabs)\home\top-airing.tsx
   2:58  warning  'ActivityIndicator' is defined but never used  @typescript-eslint/no-unused-vars
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\manage\favorite.tsx
+d:\NimeList\app\(tabs)\manage\favorite.tsx
   6:10  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\manage\index.tsx
+d:\NimeList\app\(tabs)\manage\index.tsx
    95:18  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
   104:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\profile\register.tsx
+d:\NimeList\app\(tabs)\profile\register.tsx
   2:70  warning  'ActivityIndicator' is defined but never used  @typescript-eslint/no-unused-vars
 
-D:\AnnasFazrulFarras_IlkomD\app\(tabs)\profile\settings.tsx
+d:\NimeList\app\(tabs)\profile\settings.tsx
   55:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
 
-D:\AnnasFazrulFarras_IlkomD\src\i18n\index.ts
+d:\NimeList\src\i18n\index.ts
   147:1  warning  Caution: `i18next` also has a named export `use`. Check if you meant to write `import {use} from 'i18next'` instead  import/no-named-as-default-member
 
-D:\AnnasFazrulFarras_IlkomD\src\lib\firebase.ts
-  2:47  warning  'D:\AnnasFazrulFarras_IlkomD\node_modules\firebase\auth\dist\esm\index.esm.js' imported multiple times  import/no-duplicates
+d:\NimeList\src\lib\firebase.ts
+  2:47  warning  'd:\NimeList\node_modules\firebase\auth\dist\esm\index.esm.js' imported multiple times  import/no-duplicates
   5:1   warning  Unused eslint-disable directive (no problems were reported from 'import/no-duplicates')
-  7:43  warning  'D:\AnnasFazrulFarras_IlkomD\node_modules\firebase\auth\dist\esm\index.esm.js' imported multiple times  import/no-duplicates
+  7:43  warning  'd:\NimeList\node_modules\firebase\auth\dist\esm\index.esm.js' imported multiple times  import/no-duplicates
 
 ✖ 19 problems (2 errors, 17 warnings)
   0 errors and 1 warning potentially fixable with the `--fix` option.

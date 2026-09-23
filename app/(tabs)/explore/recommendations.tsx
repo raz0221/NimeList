@@ -70,7 +70,7 @@ export default function RecommendationsScreen() {
       <ThemedView style={styles.header}>
         <NeoButton
           title="← Kembali"
-          color={isDark ? colors.card : COLORS.PRIMARY}
+          color={COLORS.PRIMARY}
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -78,8 +78,8 @@ export default function RecommendationsScreen() {
               router.push('/(tabs)/explore');
             }
           }}
-          style={{ marginBottom: 16, alignSelf: 'flex-start', borderColor: isDark ? colors.border : '#000' }}
-          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14}}
+          style={{ marginBottom: 16, alignSelf: 'flex-start' }}
+          textStyle={{ paddingVertical: 8, paddingHorizontal: 16, fontSize: 14, color: '#000' }}
         />
         <ThemedText type="title">Rekomendasi Untukmu</ThemedText>
         <ThemedText style={styles.subtitle}>Pilihan spesial yang mungkin kamu suka</ThemedText>

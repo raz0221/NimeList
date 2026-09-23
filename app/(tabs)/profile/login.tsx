@@ -1,7 +1,15 @@
-import { NeoButton, NeoInput } from "@/components/NeoKit";
+import { NeoButton, NeoInput, NeoModal } from "@/components/NeoKit";
 import { COLORS, STATUS_COLORS } from "@/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
 import { auth } from "@/src/lib/firebase";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import {
+  registerForPushNotificationsAsync,
+  saveTokenToFirestore,
+} from "@/src/services/notificationService";
+import {
+  GoogleSignin,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import { router } from "expo-router";
 import {
   GoogleAuthProvider,
@@ -9,15 +17,12 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import React, { useState } from "react";
-import { registerForPushNotificationsAsync, saveTokenToFirestore } from "@/src/services/notificationService";
-import { useTheme } from "@/src/context/ThemeContext";
 import {
-  Alert,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 const WEB_CLIENT_ID =
@@ -33,34 +38,51 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: "",
+    message: "",
+  });
+
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Harap isi email dan password!");
+      setModalConfig({
+        visible: true,
+        title: "Error",
+        message: "Harap isi email dan password!",
+      });
       return;
     }
 
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+
       // Minta izin dan simpan push token
       const token = await registerForPushNotificationsAsync();
       if (token && userCredential.user) {
         await saveTokenToFirestore(userCredential.user.uid, token);
       }
 
-      // Jika berhasil, arahkan ke profile
+      // Jika berhasil, arahkan ke tab profile untuk me-reset stack login
       router.replace("/(tabs)/profile");
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Gagal Masuk", error.message);
+      setModalConfig({
+        visible: true,
+        title: "Gagal Masuk",
+        message: error.message,
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-
     setIsLoading(true);
     try {
       // Pastikan ada dukungan Google Play Services
@@ -89,12 +111,39 @@ export default function LoginScreen() {
         await saveTokenToFirestore(userCredential.user.uid, pushToken);
       }
 
-      // Jika berhasil, arahkan ke profile
+      // Jika berhasil, arahkan ke tab profile untuk me-reset stack login
       router.replace("/(tabs)/profile");
     } catch (error: any) {
-      console.error(error);
-      if (error.code !== "SIGN_IN_CANCELLED") {
-        Alert.alert("Gagal Masuk via Google", error.message);
+      console.error(
+        "[Google Sign-In Error]",
+        JSON.stringify({
+          code: error.code,
+          message: error.message,
+        }),
+      );
+
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // Pengguna menutup dialog — abaikan
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        setModalConfig({
+          visible: true,
+          title: "Sedang Diproses",
+          message: "Login Google sedang berlangsung, harap tunggu.",
+        });
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        setModalConfig({
+          visible: true,
+          title: "Google Play Tidak Tersedia",
+          message: "Perbarui Google Play Services di perangkat Anda.",
+        });
+      } else {
+        // DEVELOPER_ERROR (kode 10): SHA-1 release belum terdaftar di Firebase Console
+        // atau google-services.json belum didownload ulang setelah SHA ditambahkan.
+        setModalConfig({
+          visible: true,
+          title: "Gagal Masuk via Google",
+          message: `[Kode: ${error.code ?? "UNKNOWN"}] ${error.message}`,
+        });
       }
     } finally {
       setIsLoading(false);
@@ -102,10 +151,20 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <NeoModal
+        visible={modalConfig.visible}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={() => setModalConfig({ ...modalConfig, visible: false })}
+      />
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Selamat Datang!</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Selamat Datang!
+          </Text>
           <Text style={[styles.subtitle, { color: colors.text }]}>
             Masuk untuk melihat watchlist anime-mu.
           </Text>

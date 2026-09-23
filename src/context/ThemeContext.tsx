@@ -32,12 +32,12 @@ export const lightColors: ThemeColors = {
 export const darkColors: ThemeColors = {
   background: '#121212',
   text: '#FFFFFF',
-  textSecondary: '#9CA3AF', // Fallback mapped to textMuted
+  textSecondary: '#D1D5DB', // Fallback mapped to textMuted
   textMuted: '#9CA3AF',
   card: '#1E1E1E',
-  input: '#333333',
-  border: '#FFFFFF',
-  shadow: '#FFFFFF',
+  input: '#2A2A2A', // Perbaikan kontras input
+  border: '#FFFFFF', // Border cerah mengikuti shadow
+  shadow: '#FFFFFF', // Sesuai permintaan: satu warna cerah agar kontras
   primary: '#6B8ECA', 
   accent: '#E5A5C7', 
 };
